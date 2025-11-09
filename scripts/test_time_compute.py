@@ -55,6 +55,8 @@ def main():
     prm = load_prm(config)
 
     dataset = get_dataset(config)
+
+    # run inference using dataset.map
     dataset = dataset.map(
         approach_fn,
         batched=True,
@@ -63,7 +65,7 @@ def main():
         desc="Running search",
         load_from_cache_file=False,
     )
-
+    # evaluate the results if specified
     dataset = score(dataset, config)
 
     save_dataset(dataset, config)
