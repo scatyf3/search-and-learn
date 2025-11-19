@@ -81,7 +81,7 @@ def main():
     # evaluate the results if specified
     dataset = score(dataset, config)
 
-    pickle_filename = "timing_results_all.pkl"
+    pickle_filename = "/scratch/yf3005/timing_results_all.pkl"
     try:
         with open(pickle_filename, "wb") as f:
             pickle.dump(timing_results, f)
