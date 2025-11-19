@@ -54,11 +54,24 @@ def main():
     )
     prm = load_prm(config)
 
+    import pickle
+    timing_results = []
     dataset = get_dataset(config)
-
     # run inference using dataset.map
+    # defined in sal.utils.data type: datasets.Dataset
+    def timing_collect_fn(batch, config, llm, prm):
+        result = approach_fn(batch, config, llm, prm)
+        # 支持batched，收集每个样本的timing_result
+        if isinstance(result, dict) and "timing_result" in result:
+            timing_results.append(result["timing_result"])
+        elif isinstance(result, list):
+            for r in result:
+                if isinstance(r, dict) and "timing_result" in r:
+                    timing_results.append(r["timing_result"])
+        return result
+
     dataset = dataset.map(
-        approach_fn,
+        timing_collect_fn,
         batched=True,
         batch_size=config.search_batch_size,
         fn_kwargs={"config": config, "llm": llm, "prm": prm},
@@ -67,6 +80,14 @@ def main():
     )
     # evaluate the results if specified
     dataset = score(dataset, config)
+
+    pickle_filename = "timing_results_all.pkl"
+    try:
+        with open(pickle_filename, "wb") as f:
+            pickle.dump(timing_results, f)
+        logger.info(f"Saved all timing results to {pickle_filename}")
+    except Exception as e:
+        logger.error(f"Failed to save timing results: {e}")
 
     save_dataset(dataset, config)
     logger.info("Done 🔥!")

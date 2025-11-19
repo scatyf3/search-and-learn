@@ -22,6 +22,7 @@ from sal.utils.score import aggregate_scores
 
 
 def best_of_n(x, config: Config, llm: LLM, prm: PRM):
+    # ...existing code...
     tokenizer = llm.get_tokenizer()
 
     convs = [
@@ -53,12 +54,18 @@ def best_of_n(x, config: Config, llm: LLM, prm: PRM):
         top_p=config.top_p,
         n=1,  # Since we've already duplicated the prompt_token_ids, we only need to generate 1 completion per prompt
     )
-
+    
+    import time
+    # 计时 LLM 生成
+    t_llm_start = time.time()
     responses = llm.generate(
         templated_convs,
         sampling_params=sampling_params,
         use_tqdm=False,
     )
+    t_llm_end = time.time()
+    llm_gen_time = t_llm_end - t_llm_start
+
     if len(responses) != len(x["problem"]) * config.n:
         raise ValueError(
             f"Generated {len(responses)} responses instead of {len(x['problem'] * config.n)}"
@@ -81,7 +88,12 @@ def best_of_n(x, config: Config, llm: LLM, prm: PRM):
         if len(c) != config.n:
             raise ValueError(f"Generated {len(c)} completions instead of {config.n}")
 
+    # 计时 PRM 验证
+    t_prm_start = time.time()
     scores = prm.score(x["problem"], completions)
+    t_prm_end = time.time()
+    prm_score_time = t_prm_end - t_prm_start
+
     agg_scores = [
         [aggregate_scores(s, config.agg_strategy) for s in score] for score in scores
     ]
@@ -93,5 +105,16 @@ def best_of_n(x, config: Config, llm: LLM, prm: PRM):
     x["scores"] = scores
     x["pred"] = pred
     x["completion_tokens"] = completion_tokens
+    x["llm_gen_time"] = llm_gen_time
+    x["prm_score_time"] = prm_score_time
 
+    from datetime import datetime
+    timing_result = {
+        "llm_gen_time": llm_gen_time,
+        "prm_score_time": prm_score_time,
+        "n": config.n,
+        "batch_size": config.search_batch_size,
+        "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S")
+    }
+    x["timing_result"] = timing_result
     return x

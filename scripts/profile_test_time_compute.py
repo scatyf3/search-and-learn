@@ -16,6 +16,8 @@
 """
 Performance profiling script for test-time compute approaches.
 This script runs inference on a single sample and records detailed performance metrics.
+
+However, trace.json is too large to be opened in Chrome Tracing... maybe use naive way
 """
 
 import logging
