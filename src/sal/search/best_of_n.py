@@ -109,12 +109,10 @@ def best_of_n(x, config: Config, llm: LLM, prm: PRM):
     x["prm_score_time"] = prm_score_time
 
     from datetime import datetime
-    timing_result = {
-        "llm_gen_time": llm_gen_time,
-        "prm_score_time": prm_score_time,
-        "n": config.n,
-        "batch_size": config.search_batch_size,
-        "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S")
-    }
-    x["timing_result"] = timing_result
+    # 拆分 timing_result 为多个字段，每个字段都是 list
+    x["llm_gen_time"] = [llm_gen_time] * len(x["problem"])
+    x["prm_score_time"] = [prm_score_time] * len(x["problem"])
+    x["timing_n"] = [config.n] * len(x["problem"])
+    x["timing_batch_size"] = [config.search_batch_size] * len(x["problem"])
+    x["timing_timestamp"] = [datetime.now().strftime("%Y%m%d_%H%M%S")] * len(x["problem"])
     return x
