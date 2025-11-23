@@ -1,11 +1,11 @@
 # Speculative decoding config for best_of_n
 
-model_path: meta-llama/Llama-3.2-1B-Instruct
+model_path: meta-llama/Llama-3.2-3B-Instruct
 approach: best_of_n_speculative
 n: 4
 search_batch_size: 25
 sort_completed: true
 filter_duplicates: true
-draft_model_path: meta-llama/Llama-3.2-1B-Draft   # draft模型路径（请根据实际情况填写）
+draft_model_path: meta-llama/Llama-3.2-1B-Instruct   # draft模型路径（请根据实际情况填写）
 num_samples: 10         # REMOVE THIS LINE TO RUN ON THE WHOLE DATASET
 seed: 0
