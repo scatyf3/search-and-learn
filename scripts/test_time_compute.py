@@ -37,6 +37,7 @@ APPROACHES = {
     "beam_search": beam_search,
     "dvts": dvts,
     "best_of_n": best_of_n,
+    "best_of_n_transformers": best_of_n_transformers,
 }
 
 
@@ -47,25 +48,8 @@ def main():
     approach_fn = APPROACHES[config.approach]
 
     num_gpus = torch.cuda.device_count()
-    if config.use_draft_model:
-        logger.info("Initializing LLM with draft model with vLLM")
-        llm = LLM(
-            model=config.model_path,
-            #speculative_config={ # not support
-            #    "model": config.draft_model_path,
-            #    "num_speculative_tokens": 5,
-            #},
-            speculative_config={
-                "method": "ngram",
-                "num_speculative_tokens": 5,
-                "prompt_lookup_max": 4,
-            },
-            trust_remote_code=True,
-            gpu_memory_utilization=config.gpu_memory_utilization,
-            enable_prefix_caching=True,
-            seed=config.seed,
-            tensor_parallel_size=num_gpus,
-        )
+    if config.approach == "best_of_n_transformers":
+        llm = None  # Transformers model will be loaded inside the function
     else:
         llm = LLM(
             model=config.model_path,
