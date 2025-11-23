@@ -133,6 +133,7 @@ def main():
         fn_kwargs=fn_kwargs,
         desc=f"Running search ({config.approach})",
         load_from_cache_file=False,
+        remove_columns=dataset.column_names 
     )
 
     # evaluate the results if specified
