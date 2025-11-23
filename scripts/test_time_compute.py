@@ -24,6 +24,7 @@ from sal.config import Config
 from sal.models.reward_models import load_prm
 from sal.search import beam_search, best_of_n, dvts
 from sal.search.best_of_n_transformers import best_of_n_transformers
+from sal.search.best_of_n_speculative import best_of_n_speculative
 from sal.utils.data import get_dataset, save_dataset
 from sal.utils.parser import H4ArgumentParser
 from sal.utils.score import score
@@ -39,6 +40,7 @@ APPROACHES = {
     "dvts": dvts,
     "best_of_n": best_of_n,
     "best_of_n_transformers": best_of_n_transformers,
+    "best_of_n_speculative": best_of_n_speculative,
 }
 
 
@@ -49,7 +51,7 @@ def main():
     approach_fn = APPROACHES[config.approach]
 
     num_gpus = torch.cuda.device_count()
-    if config.approach == "best_of_n_transformers":
+    if config.approach == "best_of_n_transformers" or config.approach == "best_of_n_speculative":
         llm = None  # Transformers model will be loaded inside the function
     else:
         llm = LLM(
