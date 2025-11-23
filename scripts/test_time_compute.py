@@ -16,6 +16,7 @@
 import logging
 
 import torch
+os.environ["VLLM_USE_V1"] = "0"
 from vllm import LLM
 
 from sal.config import Config
