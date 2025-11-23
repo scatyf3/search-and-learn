@@ -92,6 +92,7 @@ def main():
     # evaluate the results if specified
     dataset = score(dataset, config)
 
+    print(dataset)
     import os
     from datetime import datetime
     pkl_folder = "pkl_results"

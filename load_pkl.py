@@ -1,7 +1,7 @@
 import pickle
 import pandas as pd
 
-with open('timing_results_all.pkl', 'rb') as f:
+with open('timing_Llama-3.2-3B-Instruct_best_of_n_20251123_151925.pkl', 'rb') as f:
     timing_results = pickle.load(f)
 
 # print(timing_results)
