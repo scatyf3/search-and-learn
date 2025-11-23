@@ -46,7 +46,10 @@ def dynamic_model_scheduler(x, config: Config, llm, prm: PRM):
             completions[i].append(gen_text)
             model_trace[i].append("1b" if cur_model is model_1b else "3b")
             # PRM打分
-            score = prm.score([x["problem"][i]], [[gen_text]])[0][0]
+            score_result = prm.score([x["problem"][i]], [[gen_text]])
+            # score_result: list[list[float]], 取第一个分数
+            score = score_result[0][0] if isinstance(score_result[0], list) else score_result[0]
+            step_scores[i].append(score)
             step_scores[i].append(score)
             # 判断是否切换模型
             if score < score_threshold:
