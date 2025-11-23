@@ -49,7 +49,10 @@ def main():
         logger.info("Initializing LLM with draft model with vLLM")
         llm = LLM(
             model=config.model_path,
-            speculative_model=config.draft_model_path,
+            speculative_config={
+                "model": config.draft_model_path,
+                "num_speculative_tokens": 5,
+            },
             gpu_memory_utilization=config.gpu_memory_utilization,
             enable_prefix_caching=True,
             seed=config.seed,
