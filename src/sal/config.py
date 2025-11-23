@@ -29,9 +29,6 @@ class Config:
     draft_model_path: str = None  # 支持draft模型推理
     score_threshold: float = 0.8  # 分步调度分数阈值
     max_steps: int = 10           # 动态调度最大步数
-    # 动态调度相关输出
-    model_trace: list = None      # 每步用的模型
-    step_scores: list = None      # 每步分数
     gpu_memory_utilization: float = (
         0.5  # vllm is allocated 0.5 of GPU memory, the PRM uses the rest
     )
