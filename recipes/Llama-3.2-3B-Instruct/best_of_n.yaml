@@ -5,6 +5,5 @@ n: 4
 search_batch_size: 25
 sort_completed: true
 filter_duplicates: true
-num_samples: 1
 model_path: meta-llama/Llama-3.2-3B-Instruct
 seed: 0
