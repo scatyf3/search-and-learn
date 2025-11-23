@@ -1,8 +1,6 @@
 approach: best_of_n_with_draft
 model_path: meta-llama/Llama-3.2-3B-Instruct         # 主模型路径
-draft_model_path:   meta-llama/Llama-3.2-1B-Instruct 
-use_draft_model: true
-approach: best_of_n
+approach: best_of_n_with_transformers
 n: 4
 search_batch_size: 25
 sort_completed: true
