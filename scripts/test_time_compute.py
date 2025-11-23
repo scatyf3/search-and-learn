@@ -20,7 +20,7 @@ from vllm import LLM
 
 from sal.config import Config
 from sal.models.reward_models import load_prm
-from sal.search import beam_search, best_of_n, dvts
+from sal.search import beam_search, best_of_n, dvts, best_of_n_with_draft
 from sal.utils.data import get_dataset, save_dataset
 from sal.utils.parser import H4ArgumentParser
 from sal.utils.score import score
@@ -35,6 +35,7 @@ APPROACHES = {
     "beam_search": beam_search,
     "dvts": dvts,
     "best_of_n": best_of_n,
+    "best_of_n_with_draft": best_of_n_with_draft,
 }
 
 
@@ -81,7 +82,15 @@ def main():
     # evaluate the results if specified
     dataset = score(dataset, config)
 
-    pickle_filename = "/scratch/yf3005/timing_results_all.pkl"
+    import os
+    from datetime import datetime
+    pkl_folder = "pkl_results"
+    os.makedirs(pkl_folder, exist_ok=True)
+    # 文件名包含模型、approach、时间戳
+    time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_name = config.model_path.split('/')[-1]
+    approach_name = config.approach
+    pickle_filename = os.path.join(pkl_folder, f"timing_{model_name}_{approach_name}_{time_str}.pkl")
     try:
         with open(pickle_filename, "wb") as f:
             pickle.dump(timing_results, f)
