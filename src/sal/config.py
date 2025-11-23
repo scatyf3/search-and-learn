@@ -23,10 +23,15 @@ from sal.utils.hub import get_dataset_revisions
 
 @dataclass
 class Config:
-    approach: Literal["best_of_n", "beam_search", "dvts", "best_of_n_with_transformers"] = "best_of_n"
+    approach: Literal["best_of_n", "beam_search", "dvts", "best_of_n_with_transformers", "best_of_n_speculative", "dynamic_model_scheduler"] = "best_of_n"
     model_path: str = "meta-llama/Llama-3.2-1B-Instruct"
     use_draft_model: bool = False
     draft_model_path: str = None  # 支持draft模型推理
+    score_threshold: float = 0.8  # 分步调度分数阈值
+    max_steps: int = 10           # 动态调度最大步数
+    # 动态调度相关输出
+    model_trace: list = None      # 每步用的模型
+    step_scores: list = None      # 每步分数
     gpu_memory_utilization: float = (
         0.5  # vllm is allocated 0.5 of GPU memory, the PRM uses the rest
     )
