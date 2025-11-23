@@ -60,7 +60,6 @@ def main():
                 "num_speculative_tokens": 5,
                 "prompt_lookup_max": 4,
             },
-            use_v2_block_manager=True,
             trust_remote_code=True,
             gpu_memory_utilization=config.gpu_memory_utilization,
             enable_prefix_caching=True,
