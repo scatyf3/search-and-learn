@@ -55,7 +55,6 @@ def main():
             #    "model": config.draft_model_path,
             #    "num_speculative_tokens": 5,
             #},
-            model=config.model_path,
             speculative_model="[ngram]",
             num_speculative_tokens=5,
             ngram_prompt_lookup_max=4,
