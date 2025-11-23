@@ -35,7 +35,6 @@ APPROACHES = {
     "beam_search": beam_search,
     "dvts": dvts,
     "best_of_n": best_of_n,
-    "best_of_n_with_draft": best_of_n_with_draft,
 }
 
 
@@ -46,33 +45,33 @@ def main():
     approach_fn = APPROACHES[config.approach]
 
     num_gpus = torch.cuda.device_count()
-    llm = LLM(
-        model=config.model_path,
-        gpu_memory_utilization=config.gpu_memory_utilization,
-        enable_prefix_caching=True,
-        seed=config.seed,
-        tensor_parallel_size=num_gpus,
-    )
+    if config.use_draft_model:
+        logger.info("Initializing LLM with draft model with vLLM")
+        llm = LLM(
+            model=config.model_path,
+            speculative_model=config.draft_model_path,
+            gpu_memory_utilization=config.gpu_memory_utilization,
+            enable_prefix_caching=True,
+            seed=config.seed,
+            tensor_parallel_size=num_gpus,
+        )
+    else:
+        llm = LLM(
+            model=config.model_path,
+            gpu_memory_utilization=config.gpu_memory_utilization,
+            enable_prefix_caching=True,
+            seed=config.seed,
+            tensor_parallel_size=num_gpus,
+        )
+        
     prm = load_prm(config)
 
     import pickle
     timing_results = []
     dataset = get_dataset(config)
-    # run inference using dataset.map
-    # defined in sal.utils.data type: datasets.Dataset
-    def timing_collect_fn(batch, config, llm, prm):
-        result = approach_fn(batch, config, llm, prm)
-        # 支持batched，收集每个样本的timing_result
-        if isinstance(result, dict) and "timing_result" in result:
-            timing_results.append(result["timing_result"])
-        elif isinstance(result, list):
-            for r in result:
-                if isinstance(r, dict) and "timing_result" in r:
-                    timing_results.append(r["timing_result"])
-        return result
 
     dataset = dataset.map(
-        timing_collect_fn,
+        approach_fn,
         batched=True,
         batch_size=config.search_batch_size,
         fn_kwargs={"config": config, "llm": llm, "prm": prm},
@@ -104,3 +103,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+'''
+python scripts/test_time_compute.py recipes/best_of_n_with_draft.yaml
+'''
