@@ -43,7 +43,7 @@ echo "Using Python at: $(which python)"
 
 # 6. 运行你的 Python 脚本
 
-python scripts/test_time_compute.py
+python run_test_time_compute.py
 
 # 7. 任务结束
 echo "Job finished."
