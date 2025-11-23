@@ -107,5 +107,5 @@ if __name__ == "__main__":
     main()
 
 '''
-python scripts/test_time_compute.py recipes/best_of_n_with_draft.yaml
+python scripts/test_time_compute.py recipes/best_of_n_with_transformers.yaml
 '''
