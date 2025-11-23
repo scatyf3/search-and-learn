@@ -23,7 +23,7 @@ from sal.utils.hub import get_dataset_revisions
 
 @dataclass
 class Config:
-    approach: Literal["best_of_n", "beam_search", "dvts", "best_of_n_with_draft"] = "best_of_n"
+    approach: Literal["best_of_n", "beam_search", "dvts", "best_of_n_with_transformers"] = "best_of_n"
     model_path: str = "meta-llama/Llama-3.2-1B-Instruct"
     use_draft_model: bool = False
     draft_model_path: str = None  # 支持draft模型推理
