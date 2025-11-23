@@ -51,10 +51,18 @@ def main():
         logger.info("Initializing LLM with draft model with vLLM")
         llm = LLM(
             model=config.model_path,
-            speculative_config={
-                "model": config.draft_model_path,
-                "num_speculative_tokens": 5,
-            },
+            #speculative_config={ # not support
+            #    "model": config.draft_model_path,
+            #    "num_speculative_tokens": 5,
+            #},
+            model=config.model_path,
+            speculative_model="[ngram]",
+            num_speculative_tokens=5,
+            ngram_prompt_lookup_max=4,
+            use_v2_block_manager=True,
+            tensor_parallel_size=1, # 根据你的卡数调整
+            gpu_memory_utilization=0.6, 
+            trust_remote_code=True,
             gpu_memory_utilization=config.gpu_memory_utilization,
             enable_prefix_caching=True,
             seed=config.seed,
