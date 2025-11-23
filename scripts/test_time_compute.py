@@ -93,6 +93,12 @@ def main():
     dataset = score(dataset, config)
 
     print(dataset)
+    '''
+    Dataset({
+        features: ['problem', 'solution', 'answer', 'subject', 'level', 'unique_id', 'completions', 'scores', 'pred', 'completion_tokens', 'llm_gen_time', 'prm_score_time', 'timing_n', 'timing_batch_size', 'timing_timestamp', 'agg_scores', 'pred_weighted@1', 'pred_maj@1', 'pred_naive@1', 'pred_weighted@2', 'pred_maj@2', 'pred_naive@2', 'pred_weighted@4', 'pred_maj@4', 'pred_naive@4'],
+        num_rows: 10
+    })
+    '''
     import os
     from datetime import datetime
     pkl_folder = "pkl_results"
@@ -104,7 +110,7 @@ def main():
     pickle_filename = os.path.join(pkl_folder, f"timing_{model_name}_{approach_name}_{time_str}.pkl")
     try:
         with open(pickle_filename, "wb") as f:
-            pickle.dump(timing_results, f)
+            pickle.dump(dataset, f)
         logger.info(f"Saved all timing results to {pickle_filename}")
     except Exception as e:
         logger.error(f"Failed to save timing results: {e}")

@@ -71,9 +71,8 @@ def save_dataset(dataset, config):
         if config.output_dir is None:
             config.output_dir = f"data/{config.model_path}"
         Path(config.output_dir).mkdir(parents=True, exist_ok=True)
-        dataset.to_json(
-            f"{config.output_dir}/{config.approach}_completions.jsonl", lines=True
-        )
-        logger.info(
-            f"Saved completions to {config.output_dir}/{config.approach}_completions.jsonl"
-        )
+        # 文件名加入n参数
+        n_str = f"_n{config.n}" if hasattr(config, "n") and config.n is not None else ""
+        out_path = f"{config.output_dir}/{config.approach}{n_str}_completions.jsonl"
+        dataset.to_json(out_path, lines=True)
+        logger.info(f"Saved completions to {out_path}")
