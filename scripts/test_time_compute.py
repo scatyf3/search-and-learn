@@ -59,8 +59,6 @@ def main():
             num_speculative_tokens=5,
             ngram_prompt_lookup_max=4,
             use_v2_block_manager=True,
-            tensor_parallel_size=1, # 根据你的卡数调整
-            gpu_memory_utilization=0.6, 
             trust_remote_code=True,
             gpu_memory_utilization=config.gpu_memory_utilization,
             enable_prefix_caching=True,
