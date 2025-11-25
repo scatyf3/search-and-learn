@@ -100,11 +100,41 @@ def main():
         run_batch_size = 1
         logger.info("⚠️ Forcing batch_size=1 for dynamic scheduling.")
 
-    elif config.approach in ["best_of_n_transformers", "best_of_n_speculative"]:
-        # 这些方法可能在函数内部自己加载，或者还未适配外部加载
-        logger.info(f"Running {config.approach} without external vLLM init.")
-        llm = None
-        fn_kwargs["llm"] = llm
+
+    elif config.approach == "best_of_n_transformers":
+        logger.info(f"Loading target model/tokenizer for best_of_n_transformers (HuggingFace mode)...")
+        tokenizer = AutoTokenizer.from_pretrained(config.model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            config.model_path,
+            torch_dtype=torch.float16,
+            device_map="auto"
+        )
+        fn_kwargs.update({
+            "llm": model,
+            "tokenizer": tokenizer
+        })
+    elif config.approach == "best_of_n_speculative":
+        logger.info(f"Loading draft and target models/tokenizers for best_of_n_speculative (HuggingFace mode)...")
+        # Target model
+        tokenizer = AutoTokenizer.from_pretrained(config.model_path)
+        model = AutoModelForCausalLM.from_pretrained(
+            config.model_path,
+            torch_dtype=torch.float16,
+            device_map="auto"
+        )
+        # Draft model
+        draft_tokenizer = AutoTokenizer.from_pretrained(config.draft_model_path)
+        draft_model = AutoModelForCausalLM.from_pretrained(
+            config.draft_model_path,
+            torch_dtype=torch.float16,
+            device_map="auto"
+        )
+        fn_kwargs.update({
+            "llm": model,
+            "tokenizer": tokenizer,
+            "draft_model": draft_model,
+            "draft_tokenizer": draft_tokenizer
+        })
         
     else:
         # vLLM based approaches (best_of_n, beam_search, etc.)

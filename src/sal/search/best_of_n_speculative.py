@@ -20,24 +20,23 @@ from sal.config import Config
 from sal.models.reward_models import PRM
 from sal.utils.score import aggregate_scores
 
-def best_of_n_speculative(x, config: Config, llm, prm: PRM):
+
+def best_of_n_speculative(x, config: Config, llm, prm: PRM, tokenizer=None, draft_model=None, draft_tokenizer=None):
     """
     Speculative decoding: draft model generates candidates, main model verifies and accepts/rejects tokens.
-    Assumes config.draft_model_path is set.
+    llm: target model, tokenizer: target tokenizer, draft_model: draft model, draft_tokenizer: draft tokenizer
     """
-    # 加载主模型和draft模型
-    tokenizer = AutoTokenizer.from_pretrained(config.model_path)
-    model = AutoModelForCausalLM.from_pretrained(config.model_path).to('cuda')
-    draft_tokenizer = AutoTokenizer.from_pretrained(config.draft_model_path)
-    draft_model = AutoModelForCausalLM.from_pretrained(config.draft_model_path).to('cuda')
+
 
     prompts = []
     for prompt in x["problem"]:
         full_prompt = config.system_prompt + "\n" + prompt
         prompts.append(full_prompt)
 
+
     completions = [[] for _ in range(len(prompts))]
     completion_tokens = [[] for _ in range(len(prompts))]
+
 
     import time
     t_llm_start = time.time()
@@ -60,7 +59,7 @@ def best_of_n_speculative(x, config: Config, llm, prm: PRM):
             candidate_ids = tokenizer(candidate, return_tensors='pt').input_ids.to('cuda')
             # 只保留主模型概率最高的token序列（简化版）
             with torch.no_grad():
-                outputs = model(input_ids=input_ids)
+                outputs = llm(input_ids=input_ids) if callable(llm) else llm(input_ids=input_ids) if hasattr(llm, '__call__') else llm(input_ids=input_ids)
                 logits = outputs.logits[:, -1, :]
                 # 逐token比对draft和主模型分布
                 # 这里只做简单accept/reject，实际可用更复杂策略
