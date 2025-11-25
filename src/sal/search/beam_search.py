@@ -30,6 +30,7 @@ from sal.utils.score import aggregate_scores
 
 
 def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[Beam]:
+    # Initial sampling parameters
     sampling_params = SamplingParams(
         temperature=config.temperature,
         max_tokens=config.max_tokens,
@@ -39,6 +40,8 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
         n=1,
     )
 
+    # beam search configuration
+    # init with original prompts
     beams: list[Beam] = []
     for prompt in batch_of_prompts:
         for i in range(config.n):
@@ -61,14 +64,18 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             )
 
     completed_beams: list[Beam] = []
-
+    # beam search 迭代若干回合
     for i in tqdm(range(config.num_iterations), desc="Beam search iterations"):
+        # 用属性标记是否被剪枝
+        # 第一个iter都算
         if i == 0:
             active_beams = [b for b in beams if not b.pruned]
         else:
             active_beams = [b for b in active_beams if not b.pruned]
 
         # Duplicate active beams to ensure that we have config.n beams per iteration
+        # 复制active beams直到数量达到config.n
+        # 这里的意思就是prepare 容器 作为prompt和output
         if len(active_beams) != config.n:
             repeats = (config.n // len(active_beams)) + 1
             logger.debug(
@@ -82,7 +89,7 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
                 raise ValueError(
                     f"Expected {config.n} active beams, but got {len(active_beams)}"
                 )
-
+        # 如果是最后一次迭代，则修改SamplingParams，不在\n\n处停止，而是生成到EOS
         if i == config.num_iterations - 1:
             # Last iteration, generate to EOS
             sampling_params = SamplingParams(
@@ -91,7 +98,8 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
                 top_p=config.top_p,
                 n=1,
             )
-
+        # Build conversations for active beams
+        # 按照chat模板构建内容
         convs = [
             build_conv(b.prompt, b.current_text, config.system_prompt)
             for b in active_beams
