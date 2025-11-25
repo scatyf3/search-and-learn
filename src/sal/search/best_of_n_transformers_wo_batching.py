@@ -1,27 +1,13 @@
-#!/usr/bin/env python
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 from sal.config import Config
 from sal.models.reward_models import PRM
 from sal.utils.score import aggregate_scores
+import time
 
-def best_of_n_transformers(x, config: Config, llm,tokenizer , prm: PRM):
-    # 加载模型和分词器
+def best_of_n_transformers(x, config: Config, llm, tokenizer, prm: PRM):
+    # 加载模型 (注意：这里直接使用传入的 llm 对象，不要重新加载)
     model = llm
 
     # 构造输入
@@ -33,20 +19,37 @@ def best_of_n_transformers(x, config: Config, llm,tokenizer , prm: PRM):
     completions = [[] for _ in range(len(prompts))]
     completion_tokens = [[] for _ in range(len(prompts))]
 
-    import time
     t_llm_start = time.time()
+    
+    # 外层循环：遍历每一个 Prompt
     for i, prompt in enumerate(prompts):
-        inputs = tokenizer(prompt, return_tensors='pt').to('cuda')
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=config.max_tokens,
-            temperature=config.temperature,
-            top_p=config.top_p,
-            num_return_sequences=config.n,
-            do_sample=True
-        )
-        completions[i] = [tokenizer.decode(o, skip_special_tokens=True) for o in outputs]
-        completion_tokens[i] = [outputs.shape[-1] for o in outputs]
+        inputs = tokenizer(prompt, return_tensors='pt').to(model.device)
+        
+        prompt_candidates = []
+        prompt_lens = []
+
+        # === 核心修改：串行循环 n 次 ===
+        for _ in range(config.n):
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=config.max_tokens,
+                temperature=config.temperature,
+                top_p=config.top_p,
+                num_return_sequences=1,  # <--- 强制每次只生成 1 条
+                do_sample=True
+            )
+            
+            # outputs shape 为 [1, seq_len]，取 outputs[0]
+            decoded_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            seq_len = outputs.shape[-1]
+            
+            prompt_candidates.append(decoded_text)
+            prompt_lens.append(seq_len)
+
+        # 将生成的 n 个串行结果存入 completions
+        completions[i] = prompt_candidates
+        completion_tokens[i] = prompt_lens
+
     t_llm_end = time.time()
     llm_gen_time = t_llm_end - t_llm_start
 
@@ -55,7 +58,7 @@ def best_of_n_transformers(x, config: Config, llm,tokenizer , prm: PRM):
         if len(c) != config.n:
             raise ValueError(f"Generated {len(c)} completions instead of {config.n}")
 
-    # PRM验证
+    # PRM验证 (保持不变)
     t_prm_start = time.time()
     scores = prm.score(x["problem"], completions)
     t_prm_end = time.time()

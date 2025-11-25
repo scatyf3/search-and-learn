@@ -20,17 +20,8 @@ from sal.config import Config
 from sal.models.reward_models import PRM
 from sal.utils.score import aggregate_scores
 
-def best_of_n_speculative(x, config: Config, llm, prm: PRM):
-    """
-    Speculative decoding: draft model generates candidates, main model verifies and accepts/rejects tokens.
-    Assumes config.draft_model_path is set.
-    """
-    # 加载主模型和draft模型
-    tokenizer = AutoTokenizer.from_pretrained(config.model_path)
-    model = AutoModelForCausalLM.from_pretrained(config.model_path).to('cuda')
-    draft_tokenizer = AutoTokenizer.from_pretrained(config.draft_model_path)
-    draft_model = AutoModelForCausalLM.from_pretrained(config.draft_model_path).to('cuda')
 
+def best_of_n_speculative(x, config: Config, llm, prm: PRM, tokenizer=None, draft_model=None, draft_tokenizer=None):
     prompts = []
     for prompt in x["problem"]:
         full_prompt = config.system_prompt + "\n" + prompt
@@ -41,40 +32,44 @@ def best_of_n_speculative(x, config: Config, llm, prm: PRM):
 
     import time
     t_llm_start = time.time()
+    # 遍历每一个 Prompt
     for i, prompt in enumerate(prompts):
-        # draft模型生成候选
-        draft_inputs = draft_tokenizer(prompt, return_tensors='pt').to('cuda')
-        draft_outputs = draft_model.generate(
-            **draft_inputs,
-            max_new_tokens=config.max_tokens,
-            temperature=config.temperature,
-            top_p=config.top_p,
-            num_return_sequences=config.n,
-            do_sample=True
-        )
-        draft_candidates = [draft_tokenizer.decode(o, skip_special_tokens=True) for o in draft_outputs]
-        # speculative: 主模型对draft结果逐token验证
-        accepted = []
-        for candidate in draft_candidates:
-            input_ids = tokenizer(prompt, return_tensors='pt').input_ids.to('cuda')
-            candidate_ids = tokenizer(candidate, return_tensors='pt').input_ids.to('cuda')
-            # 只保留主模型概率最高的token序列（简化版）
-            with torch.no_grad():
-                outputs = model(input_ids=input_ids)
-                logits = outputs.logits[:, -1, :]
-                # 逐token比对draft和主模型分布
-                # 这里只做简单accept/reject，实际可用更复杂策略
-                accepted_tokens = []
-                for idx in candidate_ids[0]:
-                    prob = torch.softmax(logits, dim=-1)[0, idx].item()
-                    if prob > 0.01:  # 设定阈值
-                        accepted_tokens.append(idx)
-                    else:
-                        break
-                accepted_text = tokenizer.decode(accepted_tokens, skip_special_tokens=True)
-                accepted.append(accepted_text)
-        completions[i] = accepted
-        completion_tokens[i] = [len(tokenizer.encode(a)) for a in accepted]
+        inputs = tokenizer(prompt, return_tensors="pt").to(llm.device)
+        
+        prompt_completions = []
+        prompt_token_lens = []
+
+        # === 核心修改：循环 config.n 次，每次生成 1 条 ===
+        for _ in range(config.n):
+            outputs = llm.generate(
+                **inputs,
+                assistant_model=draft_model,  # 开启 Speculative Decoding
+                max_new_tokens=config.max_tokens,
+                temperature=config.temperature,
+                top_p=config.top_p,
+                num_return_sequences=1,       # <--- 必须强制为 1
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
+            )
+            
+            # 解码当前这一条
+            # outputs[0]包含了 input_ids，我们需要去掉 prompt 部分
+            # 或者直接 decode 后处理
+            text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            
+            # 简单的后处理：去掉 Prompt (如果模型输出包含 Prompt)
+            # 注意：HuggingFace generate 输出通常包含 prompt，需要切掉
+            # 这里取决于你的模型和 tokenizer 行为，通常建议如下操作：
+            input_len = inputs.input_ids.shape[1]
+            generated_ids = outputs[0][input_len:] 
+            text_only_completion = tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+            prompt_completions.append(text_only_completion)
+            prompt_token_lens.append(len(generated_ids))
+
+        completions[i] = prompt_completions
+        completion_tokens[i] = prompt_token_lens
+
     t_llm_end = time.time()
     llm_gen_time = t_llm_end - t_llm_start
 
