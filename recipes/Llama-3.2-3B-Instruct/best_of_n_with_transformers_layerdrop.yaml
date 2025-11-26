@@ -1,0 +1,9 @@
+approach: best_of_n_with_draft
+model_path: facebook/layerskip-llama3.2-1B 
+approach: best_of_n_transformers
+n: 4
+search_batch_size: 25
+sort_completed: true
+filter_duplicates: true
+num_samples: 10         # REMOVE THIS LINE TO RUN ON THE WHOLE DATASET
+seed: 0
