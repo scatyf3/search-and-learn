@@ -23,7 +23,9 @@ from sal.utils.hub import get_dataset_revisions
 
 @dataclass
 class Config:
-    approach: Literal["best_of_n", "beam_search", "dvts", "best_of_n_with_transformers", "best_of_n_speculative", "dynamic_model_scheduler"] = "best_of_n"
+    approach: Literal["best_of_n", "beam_search", "beam_search_adaptive", "dvts", "best_of_n_with_transformers", "best_of_n_speculative"] = "best_of_n"
+    fake_prm: bool = False  # 使用fake PRM进行调试
+    llm_backend: Literal["vllm", "transformers"] = "vllm"
     model_path: str = "meta-llama/Llama-3.2-1B-Instruct"
     use_draft_model: bool = False
     draft_model_path: str = None  # 支持draft模型推理
