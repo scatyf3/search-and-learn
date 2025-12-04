@@ -26,9 +26,13 @@ from transformers import AutoModelForCausalLM, AutoTokenizer  # 新增
 from sal.config import Config
 from sal.models.reward_models import load_prm
 from sal.search import dvts, best_of_n, beam_search
+from sal.search.beam_search_dynamic import beam_search_dynamic
 from sal.search.best_of_n_speculative import best_of_n_speculative
 from sal.search.best_of_n_transformers import best_of_n_transformers
 from sal.search.beam_search_adaptive import adaptive_beam_search
+from sal.search.best_of_n_transformers_layerskip import best_of_n_transformers_layerskip
+from sal.search.best_of_n_transformers_layerskip_hard import best_of_n_transformers_layerskip_hard
+from sal.search.beam_search_dynamic_cosine import beam_search_dynamic_cosine
 
 from sal.utils.data import get_dataset, save_dataset
 from sal.utils.parser import H4ArgumentParser
@@ -47,6 +51,12 @@ APPROACHES = {
     "dvts": dvts,
     "best_of_n": best_of_n,
     "beam_search_adaptive": adaptive_beam_search,
+    "best_of_n_speculative": best_of_n_speculative,
+    "best_of_n_transformers": best_of_n_transformers,
+    "best_of_n_transformers_layerskip": best_of_n_transformers_layerskip,
+    "best_of_n_transformers_layerskip_hard": best_of_n_transformers_layerskip_hard  # [新增]
+    ,"beam_search_dynamic": beam_search_dynamic,
+    "beam_search_dynamic_cosine": beam_search_dynamic_cosine    
 }
 
 
@@ -68,15 +78,18 @@ def main():
     config = parser.parse()
     logger.info(f"Starting main execution with approach: {config.approach}")
 
-    approach_fn = APPROACHES[config.approach]
+    approach_fn = None
     num_gpus = torch.cuda.device_count()
     # 2. Load PRM (Process Reward Model)
-    if config.fake_prm:
-        logger.info("Using FakePRM for debugging...")
-        prm = FakePRM()
-    else:
-        logger.info(f"Loading real PRM from {config.prm_path}...")
-        prm = load_prm(config.prm_path)
+    #if config.fake_prm:
+    # logger.info("Using FakePRM for debugging...")
+    # prm = FakePRM()
+    # print(config)
+    prm = load_prm(config)
+    # 为啥prm path 无了
+    logger.info(f"Loading real PRM from {config.prm_path}...")
+    #prm = load_prm(config.prm_path)
+
 
     
     # 4. Initialize Function Arguments (基础参数)
@@ -129,6 +142,17 @@ def main():
         # 根据 config 选择具体的 HF 函数
         if config.approach == "best_of_n":
             approach_fn = best_of_n_transformers
+        elif config.approach == "best_of_n_transformers_layerskip":
+            from sal.search.best_of_n_transformers_layerskip import best_of_n_transformers_layerskip
+            approach_fn = best_of_n_transformers_layerskip
+        # [新增] LayerSkip Hard 分支 ========================================
+        elif config.approach == "best_of_n_transformers_layerskip_hard":
+            from sal.search.best_of_n_transformers_layerskip_hard import best_of_n_transformers_layerskip_hard
+            approach_fn = best_of_n_transformers_layerskip_hard
+        # ===================================================================
+        elif config.approach == "best_of_n_transformers":
+            from sal.search.best_of_n_transformers_wo_batching import best_of_n_transformers
+            approach_fn = best_of_n_transformers
         else:
             raise ValueError(f"Approach {config.approach} not supported for transformers backend yet.")
 
@@ -145,12 +169,15 @@ def main():
             trust_remote_code=True,
         )
         fn_kwargs.update({"llm": llm})
-        
         # 映射 approach 字符串到函数
         if config.approach == "beam_search":
             approach_fn = beam_search
         elif config.approach == "best_of_n":
             approach_fn = best_of_n
+        elif config.approach == "beam_search_dynamic":
+            approach_fn = beam_search_dynamic
+        elif config.approach == "beam_search_dynamic_cosine":
+            approach_fn = beam_search_dynamic_cosine
         else:
             raise ValueError(f"Unknown approach for vLLM: {config.approach}")
     dataset = get_dataset(config)
@@ -164,28 +191,10 @@ def main():
         fn_kwargs=fn_kwargs,
         desc=f"Running search ({config.approach})",
         load_from_cache_file=False,
-        remove_columns=dataset.column_names 
     )
 
     # evaluate the results if specified
     dataset = score(dataset, config)
-    print(dataset)
-
-    # --- 结果保存 ---
-    pkl_folder = "pkl_results"
-    os.makedirs(pkl_folder, exist_ok=True)
-    
-    time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_name = config.model_path.split('/')[-1]
-    approach_name = config.approach
-    pickle_filename = os.path.join(pkl_folder, f"timing_{model_name}_{approach_name}_{time_str}.pkl")
-    
-    try:
-        with open(pickle_filename, "wb") as f:
-            pickle.dump(dataset, f)
-        logger.info(f"Saved all timing results to {pickle_filename}")
-    except Exception as e:
-        logger.error(f"Failed to save timing results: {e}")
 
     save_dataset(dataset, config)
     logger.info("Done 🔥!")

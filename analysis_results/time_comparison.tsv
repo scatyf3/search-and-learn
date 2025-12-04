@@ -1,0 +1,3 @@
+File	LLM Gen Time (s)	PRM Time (s)	Total Time (s)
+best_of_n_speculative_n4_completions_merged.jsonl	63.9742	11.0727	75.047
+best_of_n_transformers_n4_completions_merged.jsonl	59.059	9.5437	68.6027

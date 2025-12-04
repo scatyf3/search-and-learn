@@ -23,7 +23,15 @@ from sal.utils.hub import get_dataset_revisions
 
 @dataclass
 class Config:
-    approach: Literal["best_of_n", "beam_search", "beam_search_adaptive", "dvts", "best_of_n_with_transformers", "best_of_n_speculative"] = "best_of_n"
+    # LayerSkip相关参数
+    assistant_early_exit: int = None
+    num_assistant_tokens: int = None
+    def is_layerskip_model(self):
+        """判断当前模型是否为LayerSkip类型"""
+        if self.model_path and ("layerskip" in self.model_path.lower() or "layerskip" in self.approach.lower()):
+            return True
+        return False
+    approach: Literal["best_of_n", "beam_search", "beam_search_adaptive", "dvts", "best_of_n_with_transformers", "best_of_n_speculative","best_of_n_transformers_layerskip"] = "best_of_n"
     fake_prm: bool = False  # 使用fake PRM进行调试
     llm_backend: Literal["vllm", "transformers"] = "vllm"
     model_path: str = "meta-llama/Llama-3.2-1B-Instruct"
@@ -59,6 +67,7 @@ class Config:
     n: int = 4
     temperature: float = 0.8
     top_p: float = 1.0
+    prm_batch: bool = True  
     prm_batch_size: int = 4
     search_batch_size: int = 25
     seed: int = 42
@@ -73,6 +82,11 @@ class Config:
     # Beam search options:
     filter_duplicates: bool = False
     sort_completed: bool = False
+    
+    # Dynamic beam search options:
+    beam_decay_temperature: float = 1.0  # Controls non-linear beam decay curve
+    beam_warmup_steps: int = 10  # Number of warmup steps before beam decay starts
+    beam_decay_strategy: str = "exp"  # "exp" or "cosine"
 
     def __post_init__(self):
         if self.approach == "dvts":

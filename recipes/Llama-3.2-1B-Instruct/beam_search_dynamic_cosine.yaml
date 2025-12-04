@@ -1,0 +1,10 @@
+# refer to src/sal/config.py for more options
+
+filter_duplicates: true
+approach: beam_search_dynamic_cosine
+n: 16
+search_batch_size: 1  # DO NOT CHANGE!
+num_samples: 100       # REMOVE THIS LINE TO RUN ON THE WHOLE DATASET
+seed: 0
+beam_decay_temperature: 0.8  # 调整衰减曲线
+beam_warmup_steps: 5         # 调整预热步数

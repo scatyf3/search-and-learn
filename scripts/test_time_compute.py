@@ -17,9 +17,7 @@ import logging
 import os
 import pickle
 from datetime import datetime
-
-# 1. 强制禁用 vLLM V1 引擎 (必须在 import vllm 之前)
-os.environ["VLLM_USE_V1"] = "0"
+ 
 
 import torch
 from vllm import LLM
