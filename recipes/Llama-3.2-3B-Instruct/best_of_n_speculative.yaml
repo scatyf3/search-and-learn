@@ -3,11 +3,9 @@
 model_path: meta-llama/Llama-3.2-3B-Instruct
 approach: best_of_n_speculative
 n: 4
-search_batch_size: 25
 sort_completed: true
 filter_duplicates: true
-draft_model_path: unsloth/Llama-3.2-1B-bnb-4bit
-# 这个版本尺寸差距小，负加速
-# draft_model_path: meta-llama/Llama-3.2-1B-Instruct   # draft模型路径（请根据实际情况填写）
-num_samples: 10         # REMOVE THIS LINE TO RUN ON THE WHOLE DATASET
+draft_model_path: meta-llama/Llama-3.2-1B-Instruct
 seed: 0
+llm_backend: transformers
+prm_batch_size: 4

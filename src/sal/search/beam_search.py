@@ -99,30 +99,36 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
                 n=1,
             )
         # Build conversations for active beams
-        # 按照chat模板构建内容
+        # 按照chat模板构建
         convs = [
             build_conv(b.prompt, b.current_text, config.system_prompt)
             for b in active_beams
         ]
-        continue_final_message = i > 0
-        add_generation_prompt = i == 0
+        continue_final_message = i > 0 # 如果不是第一个，继续
+        add_generation_prompt = i == 0 #  如果是第一个，添加生成提示
 
+        # tokenizer init
         tokenizer = llm.get_tokenizer()
         if config.custom_chat_template is not None:
             tokenizer.chat_template = config.custom_chat_template
+        # apply chat template
         templated_convs = tokenizer.apply_chat_template(
             convs,
             add_generation_prompt=add_generation_prompt,
             continue_final_message=continue_final_message,
             tokenize=False,
         )
+        # 何意味，还能提前看吗
         lookahead = 0 if i == config.num_iterations - 1 else config.lookahead
+        # 生成k步？但好像和beam没有关系
         gen_results = generate_k_steps(
             templated_convs, lookahead, llm, sampling_params, 1
         )
 
+        # 遍历beam 
         prompts, completions = [], []
         for beam, gen_result in zip(active_beams, gen_results, strict=True):
+            # copy result的结果到beam
             beam.next_texts = gen_result.next_texts
             beam.stop_reasons = gen_result.stop_reasons
             beam.lookahead_texts = gen_result.lookahead_texts
@@ -140,6 +146,7 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             prompts.append(beam.prompt)
             completions.append([beam.current_text])
 
+        # prm评分
         scores = prm.score(prompts, completions)
 
         agg_scores = [
@@ -151,16 +158,19 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             beam.all_scores = score[0]
 
         # Now filter active_beams and agg_scores for beams that are completed
+        # 找出未完成的分支
         agg_scores = [
             agg_scores[i] for i, b in enumerate(active_beams) if not b.completed
         ]
         active_beams = [b for b in active_beams if not b.completed]
 
         # Early stopping if all beams are completed
+        # 若全部分支都完成，early stop
         if len(active_beams) == 0:
             break
 
         # Filter duplicate active beams
+        # 去重，诶如何定义重复，这不是和deepprune的一样吗，不过可能是简单去重
         if config.filter_duplicates:
             # Create a dictionary to filter duplicates and retain order
             unique_beam_dict = {}
@@ -173,6 +183,7 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             agg_scores = [agg_scores[i] for i in unique_beam_dict.values()]
 
         # Get indices for top (config.n / config.beam_width) completions
+        # 从n里选beam_width 个继续生成
         top_indices = np.argsort(np.array(agg_scores).flatten())[
             -(config.n // config.beam_width) :
         ]
@@ -181,6 +192,10 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             if idx not in top_indices:
                 beam.pruned = True
 
+
+    # 分割线，退出loop
+    # 这个设计里n的作用是啥，哦，总共的trace
+    # 然后num_iter是一个额外控制扩展多少次的超参数
     # Filter completed beams for those with top config.n scores
     if config.sort_completed:
         completed_beams = sorted(
@@ -205,6 +220,7 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
     return completed_beams
 
 
+# 为啥还有warpper...
 def beam_search(examples, config: Config, llm: LLM, prm: PRM):
     problems = examples["problem"]
     beam_results = _beam_search(problems, config, llm, prm)

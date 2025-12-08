@@ -1,0 +1,14 @@
+# refer to src/sal/config.py for more options
+
+model_path: facebook/layerskip-llama3.2-1B
+approach: best_of_n_transformers_layerskip
+n: 4
+search_batch_size: 1
+sort_completed: true
+filter_duplicates: true
+seed: 0
+assistant_early_exit: 4
+num_assistant_tokens: 5
+llm_backend: transformers
+prm_batch_size: 4
+prm_batch: false

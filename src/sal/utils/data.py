@@ -12,7 +12,9 @@
 
 import logging
 import time
+import json
 from pathlib import Path
+from datetime import datetime
 
 from datasets import Dataset, load_dataset
 from huggingface_hub import (
@@ -71,8 +73,22 @@ def save_dataset(dataset, config):
         if config.output_dir is None:
             config.output_dir = f"data/{config.model_path}"
         Path(config.output_dir).mkdir(parents=True, exist_ok=True)
-        # 文件名加入n参数
+        
+        # Generate timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 文件名加入n参数和时间戳
         n_str = f"_n{config.n}" if hasattr(config, "n") and config.n is not None else ""
-        out_path = f"{config.output_dir}/{config.approach}{n_str}_completions.jsonl"
-        dataset.to_json(out_path, lines=True)
-        logger.info(f"Saved completions to {out_path}")
+        out_path = f"{config.output_dir}/{config.approach}{n_str}_{timestamp}_completions.jsonl"
+
+        # Save full config header as first line (as JSON comment)
+        config_dict = config.__dict__.copy()
+        config_dict["timestamp"] = timestamp
+
+        with open(out_path, 'w') as f:
+            # Write config as first line (JSON comment)
+            f.write(f"# CONFIG: {json.dumps(config_dict, ensure_ascii=False)}\n")
+
+        # Append dataset content
+        dataset.to_json(out_path, lines=True, mode='a')
+        logger.info(f"Saved completions with config header to {out_path}")
