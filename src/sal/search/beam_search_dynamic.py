@@ -73,7 +73,7 @@ def cosine_decay_beam_width(iteration: int, config: Config, min_beam_width: int)
     return max(eta_min, int(width))
 
 
-def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[Beam]:
+def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> tuple[list[Beam], dict]:
     sampling_params = SamplingParams(
         temperature=config.temperature,
         max_tokens=config.max_tokens,
@@ -83,6 +83,10 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         n=1,
         logprobs=1,
     )
+    
+    # 初始化计时器
+    total_llm_time = 0.0
+    total_prm_time = 0.0
 
     beams: list[Beam] = []
     for prompt in batch_of_prompts:
@@ -165,9 +169,14 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             tokenize=False,
         )
         lookahead = 0 if i == config.num_iterations - 1 else config.lookahead
+        
+        # 计时 LLM 生成
+        t_llm_start = time.time()
         gen_results = generate_k_steps(
             templated_convs, lookahead, llm, sampling_params, 1
         )
+        t_llm_end = time.time()
+        total_llm_time += (t_llm_end - t_llm_start)
 
         prompts, completions = [], []
         for beam, gen_result in zip(active_beams, gen_results, strict=True):
@@ -188,7 +197,11 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             prompts.append(beam.prompt)
             completions.append([beam.current_text])
 
+        # 计时 PRM 评分
+        t_prm_start = time.time()
         scores = prm.score(prompts, completions)
+        t_prm_end = time.time()
+        total_prm_time += (t_prm_end - t_prm_start)
 
         agg_scores = [
             [aggregate_scores(s, config.agg_strategy) for s in score]
@@ -250,37 +263,56 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         ]
         completed_beams = extended_completed_beams
 
-    return completed_beams
+    timing_info = {
+        'llm_time': total_llm_time,
+        'prm_time': total_prm_time
+    }
+    return completed_beams, timing_info
 
 
 def beam_search_dynamic(examples, config: Config, llm: LLM, prm: PRM):
     problems = examples["problem"]
 
     start_time = time.perf_counter()
-    beam_results = _beam_search_dynamic(problems, config, llm, prm)
+    beam_results, timing_info = _beam_search_dynamic(problems, config, llm, prm)
     end_time = time.perf_counter()
     total_time = end_time - start_time
+    
+    # 提取计时信息
+    llm_gen_time = timing_info['llm_time']
+    prm_score_time = timing_info['prm_time']
+    
     # Group together alike beams and store in the dataset
     grouped_results = defaultdict(list)
     for results in beam_results:
         grouped_results[results.prompt].append(results)
 
-    results = {"completions": [], "pred": [], "completion_tokens": [], "scores": [],"total_time_beam_search": []}
+    completions = []
+    pred = []
+    completion_tokens = []
+    scores = []
     num_problems = len(problems)
     time_per_problem = total_time / num_problems
+    
     for p in problems:
         beams = grouped_results[p]
-        completions = [b.current_text for b in beams]
+        completions_i = [b.current_text for b in beams]
         agg_scores = [
             aggregate_scores(b.all_scores, config.agg_strategy) for b in beams
         ]
-        pred = completions[np.argmax(agg_scores)]
-        results["completions"].append(completions)
-        results["scores"].append([b.all_scores for b in beams])
-        results["pred"].append(pred)
-        results["completion_tokens"].append([b.completion_tokens for b in beams])
+        pred_i = completions_i[np.argmax(agg_scores)]
+        completions.append(completions_i)
+        scores.append([b.all_scores for b in beams])
+        pred.append(pred_i)
+        completion_tokens.append([b.completion_tokens for b in beams])
 
-        # Add average time per problem
-        results["total_time_beam_search"].append(time_per_problem)
+    # 修改 examples 字典，而不是创建新字典
+    examples["completions"] = completions
+    examples["scores"] = scores
+    examples["pred"] = pred
+    examples["completion_tokens"] = completion_tokens
+    examples["total_time_beam_search"] = [time_per_problem] * num_problems
+    examples["llm_gen_time"] = [llm_gen_time / num_problems] * num_problems
+    examples["prm_score_time"] = [prm_score_time / num_problems] * num_problems
 
-    return results
+    return examples

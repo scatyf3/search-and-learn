@@ -15,9 +15,9 @@ SCRIPT_PATH = "scripts/test_time_compute_fake_prm.py"
 # 3. 临时配置文件存放目录 (会自动创建)
 SWEEP_CONFIG_DIR = "recipes/sweeps"
 
-# 4. 要枚举的参数网格
+
 STRATEGY_VALUES = ["exp", "cosine"]
-N_VALUES = [4, 16, 64]
+N_VALUES = [4, 16]
 TEMP_VALUES = [0.5, 0.8, 1.0, 2.0]
 
 # 5. Debug模式 (如果为True，只采样1个问题)
@@ -67,8 +67,8 @@ def run_sweep():
             current_config['num_samples'] = 1 
 
         # 2. 生成新的文件名
-        # 例如: beam_dynamic_n16_t0.8.yaml
-        config_filename = f"beam_dynamic_n{n}_t{temp}_{strategy}.yaml"
+        # 例如: beam_dynamic_n16_temp0.8_strategy_exp.yaml
+        config_filename = f"beam_dynamic_n{n}_temp{temp}_strategy_{strategy}.yaml"
         new_config_path = os.path.join(SWEEP_CONFIG_DIR, config_filename)
 
         # 3. 保存新配置到磁盘

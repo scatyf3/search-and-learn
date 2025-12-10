@@ -251,22 +251,30 @@ def beam_search_dynamic_cosine(examples, config: Config, llm: LLM, prm: PRM):
     for results in beam_results:
         grouped_results[results.prompt].append(results)
 
-    results = {"completions": [], "pred": [], "completion_tokens": [], "scores": [],"total_time_beam_search": []}
+    completions = []
+    pred = []
+    completion_tokens = []
+    scores = []
     num_problems = len(problems)
     time_per_problem = total_time / num_problems
+    
     for p in problems:
         beams = grouped_results[p]
-        completions = [b.current_text for b in beams]
+        completions_i = [b.current_text for b in beams]
         agg_scores = [
             aggregate_scores(b.all_scores, config.agg_strategy) for b in beams
         ]
-        pred = completions[np.argmax(agg_scores)]
-        results["completions"].append(completions)
-        results["scores"].append([b.all_scores for b in beams])
-        results["pred"].append(pred)
-        results["completion_tokens"].append([b.completion_tokens for b in beams])
+        pred_i = completions_i[np.argmax(agg_scores)]
+        completions.append(completions_i)
+        scores.append([b.all_scores for b in beams])
+        pred.append(pred_i)
+        completion_tokens.append([b.completion_tokens for b in beams])
 
-        # Add average time per problem
-        results["total_time_beam_search"].append(time_per_problem)
+    # 修改 examples 字典，而不是创建新字典
+    examples["completions"] = completions
+    examples["scores"] = scores
+    examples["pred"] = pred
+    examples["completion_tokens"] = completion_tokens
+    examples["total_time_beam_search"] = [time_per_problem] * num_problems
 
-    return results
+    return examples

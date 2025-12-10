@@ -1,0 +1,80 @@
+=========================================
+Benchmarking vLLM vs SGLang
+=========================================
+
+Step 1: Testing vLLM...
+Activating vLLM environment...
+Running vLLM benchmark...
+Model: meta-llama/Llama-3.2-1B-Instruct
+Dataset: HuggingFaceH4/MATH-500
+Number of prompts: 10
+Samples per prompt: 4
+Temperature: 0.8
+Max tokens: 2048
+
+=== Testing VLLM ===
+INFO 12-04 16:55:37 [utils.py:253] non-default args: {'gpu_memory_utilization': 0.5, 'disable_log_stats': True, 'model': 'meta-llama/Llama-3.2-1B-Instruct'}
+INFO 12-04 16:55:37 [model.py:631] Resolved architecture: LlamaForCausalLM
+WARNING 12-04 16:55:37 [model.py:1921] Your device 'Quadro RTX 8000' (with compute capability 7.5) doesn't support torch.bfloat16. Falling back to torch.float16 for compatibility.
+WARNING 12-04 16:55:37 [model.py:1971] Casting torch.bfloat16 to torch.float16.
+INFO 12-04 16:55:37 [model.py:1745] Using max model len 131072
+INFO 12-04 16:55:38 [scheduler.py:216] Chunked prefill is enabled with max_num_batched_tokens=8192.
+WARNING 12-04 16:55:38 [system_utils.py:103] We must use the `spawn` multiprocessing start method. Overriding VLLM_WORKER_MULTIPROC_METHOD to 'spawn'. See https://docs.vllm.ai/en/latest/usage/troubleshooting.html#python-multiprocessing for more information. Reasons: CUDA is initialized
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:45 [core.py:93] Initializing a V1 LLM engine (v0.11.2) with config: model='meta-llama/Llama-3.2-1B-Instruct', speculative_config=None, tokenizer='meta-llama/Llama-3.2-1B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.float16, max_seq_len=131072, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=meta-llama/Llama-3.2-1B-Instruct, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'level': None, 'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'splitting_ops': ['vllm::unified_attention', 'vllm::unified_attention_with_output', 'vllm::unified_mla_attention', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::gdn_attention_core', 'vllm::kda_attention', 'vllm::sparse_attn_indexer'], 'compile_mm_encoder': False, 'use_inductor': None, 'compile_sizes': [], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256, 272, 288, 304, 320, 336, 352, 368, 384, 400, 416, 432, 448, 464, 480, 496, 512], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {}, 'max_cudagraph_capture_size': 512, 'local_cache_dir': None}
+[1;36m(EngineCore_DP0 pid=741015)[0;0m ERROR 12-04 16:55:46 [fa_utils.py:64] Cannot use FA version 2 is not supported due to FA2 is only supported on devices with compute capability >= 8
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:46 [parallel_state.py:1208] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://10.32.35.164:41011 backend=nccl
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:46 [parallel_state.py:1394] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:46 [gpu_model_runner.py:3259] Starting to load model meta-llama/Llama-3.2-1B-Instruct...
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:47 [cuda.py:418] Valid backends: ['FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION']
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:47 [cuda.py:427] Using FLASHINFER backend.
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:47 [weight_utils.py:481] No model.safetensors.index.json found in remote.
+[1;36m(EngineCore_DP0 pid=741015)[0;0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+[1;36m(EngineCore_DP0 pid=741015)[0;0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:01<00:00,  1.34s/it]
+[1;36m(EngineCore_DP0 pid=741015)[0;0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:01<00:00,  1.34s/it]
+[1;36m(EngineCore_DP0 pid=741015)[0;0m 
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:49 [default_loader.py:314] Loading weights took 1.42 seconds
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:49 [gpu_model_runner.py:3338] Model loading took 2.3185 GiB memory and 1.942956 seconds
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:53 [backends.py:631] Using cache directory: /home/yf3005/.cache/vllm/torch_compile_cache/d5a210492c/rank_0_0/backbone for vLLM's torch.compile
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:53 [backends.py:647] Dynamo bytecode transform time: 4.00 s
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:55 [backends.py:210] Directly load the compiled graph(s) for dynamic shape from the cache, took 1.917 s
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:56 [monitor.py:34] torch.compile takes 5.92 s in total
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:57 [gpu_worker.py:359] Available KV cache memory: 18.69 GiB
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:57 [kv_cache_utils.py:1229] GPU KV cache size: 612,336 tokens
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:57 [kv_cache_utils.py:1234] Maximum concurrency for 131,072 tokens per request: 4.67x
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:55:57 [kernel_warmup.py:65] Warming up FlashInfer attention.
+[1;36m(EngineCore_DP0 pid=741015)[0;0m Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/51 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   6%|▌         | 3/51 [00:00<00:01, 26.27it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  14%|█▎        | 7/51 [00:00<00:01, 33.48it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  22%|██▏       | 11/51 [00:00<00:01, 26.17it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  31%|███▏      | 16/51 [00:00<00:01, 32.28it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  39%|███▉      | 20/51 [00:00<00:00, 33.88it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  47%|████▋     | 24/51 [00:00<00:00, 31.34it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  55%|█████▍    | 28/51 [00:00<00:00, 33.65it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  65%|██████▍   | 33/51 [00:01<00:00, 31.60it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  76%|███████▋  | 39/51 [00:01<00:00, 35.81it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  88%|████████▊ | 45/51 [00:01<00:00, 36.39it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 51/51 [00:01<00:00, 38.83it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 51/51 [00:01<00:00, 34.61it/s]
+[1;36m(EngineCore_DP0 pid=741015)[0;0m Capturing CUDA graphs (decode, FULL):   0%|          | 0/35 [00:00<?, ?it/s]Capturing CUDA graphs (decode, FULL):  11%|█▏        | 4/35 [00:00<00:00, 33.84it/s]Capturing CUDA graphs (decode, FULL):  23%|██▎       | 8/35 [00:00<00:00, 29.43it/s]Capturing CUDA graphs (decode, FULL):  34%|███▍      | 12/35 [00:00<00:00, 31.28it/s]Capturing CUDA graphs (decode, FULL):  49%|████▊     | 17/35 [00:00<00:00, 33.01it/s]Capturing CUDA graphs (decode, FULL):  63%|██████▎   | 22/35 [00:00<00:00, 37.74it/s]Capturing CUDA graphs (decode, FULL):  77%|███████▋  | 27/35 [00:00<00:00, 35.35it/s]Capturing CUDA graphs (decode, FULL):  91%|█████████▏| 32/35 [00:00<00:00, 36.86it/s]Capturing CUDA graphs (decode, FULL): 100%|██████████| 35/35 [00:00<00:00, 36.17it/s]
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:56:01 [gpu_model_runner.py:4244] Graph capturing finished in 3 secs, took 1.41 GiB
+[1;36m(EngineCore_DP0 pid=741015)[0;0m INFO 12-04 16:56:01 [core.py:250] init engine (profile, create kv cache, warmup model) took 11.54 seconds
+INFO 12-04 16:56:02 [llm.py:352] Supported tasks: ['generate']
+Adding requests:   0%|          | 0/10 [00:00<?, ?it/s]Adding requests: 100%|██████████| 10/10 [00:00<00:00, 720.20it/s]
+Processed prompts:   0%|          | 0/40 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s]Processed prompts:  10%|█         | 4/40 [00:03<00:32,  1.12it/s, est. speed input: 378.32 toks/s, output: 244.84 toks/s]Processed prompts:  20%|██        | 8/40 [00:03<00:13,  2.40it/s, est. speed input: 391.84 toks/s, output: 546.57 toks/s]Processed prompts:  30%|███       | 12/40 [00:05<00:12,  2.28it/s, est. speed input: 281.62 toks/s, output: 609.71 toks/s]Processed prompts:  40%|████      | 16/40 [00:06<00:08,  2.69it/s, est. speed input: 271.37 toks/s, output: 835.90 toks/s]Processed prompts:  60%|██████    | 24/40 [00:12<00:08,  1.89it/s, est. speed input: 196.74 toks/s, output: 910.14 toks/s]Processed prompts:  70%|███████   | 28/40 [00:13<00:05,  2.19it/s, est. speed input: 226.77 toks/s, output: 1024.39 toks/s]Processed prompts:  80%|████████  | 32/40 [00:18<00:05,  1.47it/s, est. speed input: 190.96 toks/s, output: 1191.43 toks/s]Processed prompts: 100%|██████████| 40/40 [00:18<00:00,  1.47it/s, est. speed input: 208.69 toks/s, output: 1603.70 toks/s]Processed prompts: 100%|██████████| 40/40 [00:18<00:00,  2.19it/s, est. speed input: 208.69 toks/s, output: 1603.70 toks/s]
+[rank0]:[W1204 16:56:20.485195024 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+VLLM - Time: 18.28s
+VLLM - Total tokens: 30900
+VLLM - Throughput: 1690.21 tokens/s
+
+Example output (first prompt, first sample):
+
+## Step 1
+To solve the problem, we need to use the conversion formulas between rectangular and polar coordinates.
+## Step 2
+The conversion formulas between rectangular and polar coordinates are $x = ...
+
+Results saved to vllm_benchmark_result.txt
+vLLM benchmark completed.
+
+Step 2: Testing SGLang...
+Switching to SGLang environment...
+DeprecationWarning: 'source deactivate' is deprecated. Use 'conda deactivate'.
+Running SGLang benchmark...
+Traceback (most recent call last):
+  File "/home/yf3005/search-and-learn/benchmark_sglang.py", line 9, in <module>
+    import sglang as sgl
+ModuleNotFoundError: No module named 'sglang'

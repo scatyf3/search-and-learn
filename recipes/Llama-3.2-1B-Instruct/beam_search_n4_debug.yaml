@@ -1,0 +1,9 @@
+# refer to src/sal/config.py for more options
+
+filter_duplicates: true
+approach: beam_search
+n: 4
+num_samples: 4
+search_batch_size: 1  # DO NOT CHANGE!
+seed: 0
+gpu_memory_utilization: 0.3

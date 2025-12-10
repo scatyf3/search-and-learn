@@ -1,0 +1,4 @@
+VLLM Benchmark Results
+Time: 24.18s
+Total tokens: 25264
+Throughput: 1045.04 tokens/s

@@ -15,6 +15,7 @@
 import copy
 import logging
 from collections import defaultdict
+import time
 
 import numpy as np
 from tqdm import tqdm
@@ -29,7 +30,7 @@ logger = logging.getLogger()
 from sal.utils.score import aggregate_scores
 
 
-def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[Beam]:
+def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> tuple[list[Beam], dict]:
     # Initial sampling parameters
     sampling_params = SamplingParams(
         temperature=config.temperature,
@@ -39,6 +40,10 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
         include_stop_str_in_output=True,
         n=1,
     )
+    
+    # 初始化计时器
+    total_llm_time = 0.0
+    total_prm_time = 0.0
 
     # beam search configuration
     # init with original prompts
@@ -121,9 +126,14 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
         # 何意味，还能提前看吗
         lookahead = 0 if i == config.num_iterations - 1 else config.lookahead
         # 生成k步？但好像和beam没有关系
+        
+        # 计时 LLM 生成
+        t_llm_start = time.time()
         gen_results = generate_k_steps(
             templated_convs, lookahead, llm, sampling_params, 1
         )
+        t_llm_end = time.time()
+        total_llm_time += (t_llm_end - t_llm_start)
 
         # 遍历beam 
         prompts, completions = [], []
@@ -147,7 +157,11 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
             completions.append([beam.current_text])
 
         # prm评分
+        # 计时 PRM 评分
+        t_prm_start = time.time()
         scores = prm.score(prompts, completions)
+        t_prm_end = time.time()
+        total_prm_time += (t_prm_end - t_prm_start)
 
         agg_scores = [
             [aggregate_scores(s, config.agg_strategy) for s in score]
@@ -217,31 +231,59 @@ def _beam_search(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> list[B
         ]
         completed_beams = extended_completed_beams
 
-    return completed_beams
+    timing_info = {
+        'llm_time': total_llm_time,
+        'prm_time': total_prm_time
+    }
+    return completed_beams, timing_info
 
 
 # 为啥还有warpper...
 def beam_search(examples, config: Config, llm: LLM, prm: PRM):
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"beam_search called with {len(examples['problem'])} problems")
+    logger.info(f"Input keys: {list(examples.keys())}")
+    
     problems = examples["problem"]
-    beam_results = _beam_search(problems, config, llm, prm)
+    beam_results, timing_info = _beam_search(problems, config, llm, prm)
+    
+    # 提取计时信息
+    llm_gen_time = timing_info['llm_time']
+    prm_score_time = timing_info['prm_time']
 
     # Group together alike beams and store in the dataset
     grouped_results = defaultdict(list)
     for results in beam_results:
         grouped_results[results.prompt].append(results)
 
-    results = {"completions": [], "pred": [], "completion_tokens": [], "scores": []}
+    completions = []
+    pred = []
+    completion_tokens = []
+    scores = []
+    num_problems = len(problems)
 
     for p in problems:
         beams = grouped_results[p]
-        completions = [b.current_text for b in beams]
+        completions_i = [b.current_text for b in beams]
         agg_scores = [
             aggregate_scores(b.all_scores, config.agg_strategy) for b in beams
         ]
-        pred = completions[np.argmax(agg_scores)]
-        results["completions"].append(completions)
-        results["scores"].append([b.all_scores for b in beams])
-        results["pred"].append(pred)
-        results["completion_tokens"].append([b.completion_tokens for b in beams])
+        pred_i = completions_i[np.argmax(agg_scores)]
+        completions.append(completions_i)
+        scores.append([b.all_scores for b in beams])
+        pred.append(pred_i)
+        completion_tokens.append([b.completion_tokens for b in beams])
 
-    return results
+    # 修改 examples 字典，而不是创建新字典
+    examples["completions"] = completions
+    examples["scores"] = scores
+    examples["pred"] = pred
+    examples["completion_tokens"] = completion_tokens
+    examples["llm_gen_time"] = [llm_gen_time / num_problems] * num_problems
+    examples["prm_score_time"] = [prm_score_time / num_problems] * num_problems
+    
+    logger.info(f"beam_search returning with keys: {list(examples.keys())}")
+    logger.info(f"completions length: {len(examples['completions'])}")
+
+    return examples

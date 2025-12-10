@@ -43,7 +43,10 @@ echo "Using Python at: $(which python)"
 
 # 6. 运行你的 Python 脚本
 
-python run_dynamic_beam.py
+# 排查有无问题
+# python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n4_debug.yaml
 
+python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n4.yaml
+python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n16.yaml
 # 7. 任务结束
 echo "Job finished."

@@ -46,6 +46,30 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def get_recommended_dtype():
+    """根据 GPU 计算能力自动推荐 dtype"""
+    if not torch.cuda.is_available():
+        return "auto"
+    
+    # 获取第一个 GPU 的计算能力
+    compute_capability = torch.cuda.get_device_capability(0)
+    major, minor = compute_capability
+    compute_cap = major + minor / 10
+    
+    gpu_name = torch.cuda.get_device_name(0)
+    logger.info(f"检测到 GPU: {gpu_name}")
+    logger.info(f"计算能力: {major}.{minor}")
+    
+    # 计算能力 >= 8.0 支持 bfloat16 (A100, H100 等)
+    # 计算能力 < 8.0 只支持 float16 (V100, RTX 8000 等)
+    if compute_cap >= 8.0:
+        logger.info("✅ 使用 bfloat16 (auto)")
+        return "auto"  # 默认会使用 bfloat16
+    else:
+        logger.info("✅ 使用 float16 (half) - GPU 不支持 bfloat16")
+        return "half"
+
+
 APPROACHES = {
     "beam_search": beam_search,
     "dvts": dvts,
@@ -160,6 +184,10 @@ def main():
     else:
         logger.info(f"Initializing vLLM for {config.approach}...")
         num_gpus = torch.cuda.device_count()
+        
+        # 自动检测 GPU 并选择合适的 dtype
+        recommended_dtype = get_recommended_dtype()
+        
         llm = LLM(
             model=config.model_path,
             gpu_memory_utilization=config.gpu_memory_utilization,
@@ -167,6 +195,7 @@ def main():
             seed=config.seed,
             tensor_parallel_size=num_gpus,
             trust_remote_code=True,
+            dtype=recommended_dtype,  # 根据 GPU 自动选择
         )
         fn_kwargs.update({"llm": llm})
         # 映射 approach 字符串到函数
@@ -180,8 +209,12 @@ def main():
             approach_fn = beam_search_dynamic_cosine
         else:
             raise ValueError(f"Unknown approach for vLLM: {config.approach}")
+    
+    logger.info(f"Approach function set to: {approach_fn.__name__}")
     dataset = get_dataset(config)
     run_batch_size = config.search_batch_size
+    logger.info(f"Dataset size before search: {len(dataset)}")
+    logger.info(f"Dataset columns before search: {dataset.column_names}")
     logger.info(f"Starting search with batch size: {run_batch_size}")
     
     dataset = dataset.map(
@@ -192,6 +225,10 @@ def main():
         desc=f"Running search ({config.approach})",
         load_from_cache_file=False,
     )
+    
+    # 调试：打印数据集列名
+    logger.info(f"Dataset columns after search: {dataset.column_names}")
+    logger.info(f"First example keys: {list(dataset[0].keys())}")
 
     # evaluate the results if specified
     dataset = score(dataset, config)

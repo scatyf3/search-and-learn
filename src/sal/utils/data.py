@@ -15,6 +15,8 @@ import time
 import json
 from pathlib import Path
 from datetime import datetime
+import glob
+import os
 
 from datasets import Dataset, load_dataset
 from huggingface_hub import (
@@ -36,7 +38,58 @@ def get_dataset(config: Config) -> Dataset:
     if config.num_samples is not None:
         dataset = dataset.select(range(min(len(dataset), config.num_samples)))
 
+    # 断点续传：检查已存在的输出文件
+    processed_indices = get_processed_indices(config)
+    if processed_indices:
+        original_size = len(dataset)
+        # 过滤掉已处理的样本
+        dataset = dataset.filter(lambda example, idx: idx not in processed_indices, with_indices=True)
+        logger.info(f"📌 断点续传: 跳过 {len(processed_indices)} 个已处理样本 (剩余 {len(dataset)}/{original_size})")
+    
     return dataset
+
+
+def get_processed_indices(config: Config) -> set:
+    """检查输出目录中已存在的文件，返回已处理的样本索引集合"""
+    if config.output_dir is None:
+        config.output_dir = f"data/{config.model_path}"
+    
+    if not os.path.exists(config.output_dir):
+        return set()
+    
+    # 构建文件名模式
+    n_str = f"_n{config.n}" if hasattr(config, "n") and config.n is not None else ""
+    pattern = f"{config.output_dir}/{config.approach}{n_str}_*_completions.jsonl"
+    
+    existing_files = glob.glob(pattern)
+    if not existing_files:
+        return set()
+    
+    # 使用最新的文件
+    latest_file = max(existing_files, key=os.path.getmtime)
+    logger.info(f"🔍 发现已存在文件: {latest_file}")
+    
+    processed_indices = set()
+    try:
+        with open(latest_file, 'r') as f:
+            for idx, line in enumerate(f):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                try:
+                    data = json.loads(line)
+                    # 假设数据集按顺序处理，使用行号作为索引（减去配置行）
+                    processed_indices.add(len(processed_indices))
+                except json.JSONDecodeError:
+                    continue
+        
+        if processed_indices:
+            logger.info(f"✅ 从 {latest_file} 加载了 {len(processed_indices)} 个已处理样本")
+    except Exception as e:
+        logger.warning(f"⚠️  读取已存在文件失败: {e}")
+        return set()
+    
+    return processed_indices
 
 
 def save_dataset(dataset, config):
@@ -74,21 +127,41 @@ def save_dataset(dataset, config):
             config.output_dir = f"data/{config.model_path}"
         Path(config.output_dir).mkdir(parents=True, exist_ok=True)
         
-        # Generate timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # 文件名加入n参数和时间戳
+        # 文件名加入n参数和其他参数
         n_str = f"_n{config.n}" if hasattr(config, "n") and config.n is not None else ""
-        out_path = f"{config.output_dir}/{config.approach}{n_str}_{timestamp}_completions.jsonl"
+        
+        # 添加 temperature 和 strategy 参数（如果存在）
+        temp_str = ""
+        strategy_str = ""
+        if hasattr(config, "beam_decay_temperature") and config.beam_decay_temperature is not None:
+            temp_str = f"_temp{config.beam_decay_temperature}"
+        if hasattr(config, "beam_decay_strategy") and config.beam_decay_strategy is not None:
+            strategy_str = f"_{config.beam_decay_strategy}"
+        
+        params_str = f"{n_str}{temp_str}{strategy_str}"
+        pattern = f"{config.output_dir}/{config.approach}{params_str}_*_completions.jsonl"
+        existing_files = glob.glob(pattern)
+        
+        # 断点续传：如果文件已存在，追加模式
+        if existing_files:
+            out_path = max(existing_files, key=os.path.getmtime)
+            logger.info(f"📝 追加到已存在文件: {out_path}")
+            mode = 'a'
+        else:
+            # 新文件：生成时间戳
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_path = f"{config.output_dir}/{config.approach}{params_str}_{timestamp}_completions.jsonl"
+            
+            # 保存配置头
+            config_dict = config.__dict__.copy()
+            config_dict["timestamp"] = timestamp
+            
+            with open(out_path, 'w') as f:
+                f.write(f"# CONFIG: {json.dumps(config_dict, ensure_ascii=False)}\n")
+            
+            logger.info(f"✨ 创建新文件: {out_path}")
+            mode = 'a'
 
-        # Save full config header as first line (as JSON comment)
-        config_dict = config.__dict__.copy()
-        config_dict["timestamp"] = timestamp
-
-        with open(out_path, 'w') as f:
-            # Write config as first line (JSON comment)
-            f.write(f"# CONFIG: {json.dumps(config_dict, ensure_ascii=False)}\n")
-
-        # Append dataset content
-        dataset.to_json(out_path, lines=True, mode='a')
-        logger.info(f"Saved completions with config header to {out_path}")
+        # 保存数据集内容
+        dataset.to_json(out_path, lines=True, mode=mode)
+        logger.info(f"💾 已保存 {len(dataset)} 条新记录到 {out_path}")
