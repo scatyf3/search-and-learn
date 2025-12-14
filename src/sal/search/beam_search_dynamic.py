@@ -17,6 +17,7 @@ import logging
 from collections import defaultdict
 import time
 
+import torch
 import numpy as np
 from tqdm import tqdm
 from vllm import LLM, SamplingParams
@@ -77,7 +78,7 @@ def cosine_decay_beam_width(iteration: int, config: Config, min_beam_width: int)
     return max(eta_min, int(width))
 
 
-def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> tuple[list[Beam], list[Beam]]:
+def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -> tuple[list[Beam], list[Beam], dict]:
     sampling_params = SamplingParams(
         temperature=config.temperature,
         max_tokens=config.max_tokens,
@@ -85,9 +86,13 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         stop=["\n\n"],
         include_stop_str_in_output=True,
         n=1,
-        logprobs=1,
     )
+    
+    # 初始化计时器
+    total_llm_time = 0.0
+    total_prm_time = 0.0
 
+    # 初始化 beams， 和原beam search一致
     beams: list[Beam] = []
     for prompt in batch_of_prompts:
         for i in range(config.n):
@@ -118,19 +123,13 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         else:
             active_beams = [b for b in active_beams if not b.pruned]
 
-        min_beam_width = 2
+        # Beam width 保持固定为 config.n
+        current_beam_width = config.beam_width
         
-        # 根据配置选择衰减策略，动态调整beam width
+        # 只动态调整 n（每次采样的候选数）
+        min_n = 2
         strategy = getattr(config, 'beam_decay_strategy', 'exp')
         
-        if strategy == "cosine":
-            current_beam_width = cosine_decay_beam_width(i, config, min_beam_width)
-        else:
-            current_beam_width = exp_decay_beam_width(i, config, min_beam_width)
-        
-        # 同时动态调整n（每次采样的候选数）
-        # 使用相同的衰减比例来调整n
-        min_n = 1
         if strategy == "cosine":
             current_n = cosine_decay_beam_width(i, config, min_n)
         else:
@@ -138,10 +137,10 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         # 确保current_n至少为1
         current_n = max(1, current_n)
         
-        logger.info(f"Iteration {i}: Setting beam width to {current_beam_width}, n to {current_n}")
+        logger.info(f"Iteration {i}: Beam width fixed at {current_beam_width}, dynamic n={current_n}")
         # Duplicate active beams to ensure that we have config.n beams per iteration
-        if len(active_beams) != current_beam_width:
-            repeats = (current_beam_width // len(active_beams)) + 1
+        if len(active_beams) != current_n:
+            repeats = (current_n // len(active_beams)) + 1
             logger.debug(
                 f"Extending active_beams with {repeats} repetitions to reach size {current_beam_width}"
             )
@@ -149,9 +148,9 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
                 copy.deepcopy(b) for b in (active_beams * repeats)[: current_beam_width]
             ]
             active_beams = extended_active_beams
-            if len(active_beams) != current_beam_width:
+            if len(active_beams) != current_n:
                 raise ValueError(
-                    f"Expected {current_beam_width} active beams, but got {len(active_beams)}"
+                    f"Expected {current_n} active beams, but got {len(active_beams)}"
                 )
 
         if i == config.num_iterations - 1:
@@ -160,8 +159,9 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
                 temperature=config.temperature,
                 max_tokens=config.max_tokens,
                 top_p=config.top_p,
-                n=current_n,  # 使用动态调整的n
+                n=1,  # 使用动态调整的n
             )
+        '''
         else:
             # 更新sampling_params使用动态的n
             sampling_params = SamplingParams(
@@ -171,8 +171,10 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
                 stop=["\n\n"],
                 include_stop_str_in_output=True,
                 n=current_n,  # 使用动态调整的n
-                logprobs=1,
             )
+        # 这啥，原来的code没见过
+        '''
+
 
         convs = [
             build_conv(b.prompt, b.current_text, config.system_prompt)
@@ -192,9 +194,15 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
         )
         lookahead = 0 if i == config.num_iterations - 1 else config.lookahead
         
+        # 计时 LLM 生成
+        torch.cuda.synchronize()
+        t_llm_start = time.time()
         gen_results = generate_k_steps(
             templated_convs, lookahead, llm, sampling_params, current_n  # 使用动态的n
         )
+        torch.cuda.synchronize()
+        t_llm_end = time.time()
+        total_llm_time += (t_llm_end - t_llm_start)
 
         prompts, completions = [], []
         for beam, gen_result in zip(active_beams, gen_results, strict=True):
@@ -208,10 +216,16 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             # 统计每个prompt的token数和beam数量
             tokens_per_prompt[beam.prompt] += gen_result.completion_tokens
             beam_number_per_prompt[beam.prompt] += 1
+            
+            # 🔥 DEBUG: 打印stop reason看为什么stop token不生效
+            if i == 0:  # 只在第一次迭代打印
+                logger.info(f"[DEBUG] Iteration {i}, Beam stop_reason: {beam.stop_reasons[0]}, text length: {len(beam.next_texts[0])}")
 
+            # 🔥 FIX: 添加对"stop"的检查（vLLM遇到stop token时返回"stop"）
             if (
                 beam.stop_reasons[0] == "EOS"
                 or beam.stop_reasons[0] == "length"
+                or beam.stop_reasons[0] == "stop"  # vLLM遇到stop token返回"stop"
                 or beam.next_texts[0] == ""
             ):
                 beam.completed = True
@@ -219,7 +233,11 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             prompts.append(beam.prompt)
             completions.append([beam.current_text])
 
+        # 计时 PRM 评分
+        t_prm_start = time.time()
         scores = prm.score(prompts, completions)
+        t_prm_end = time.time()
+        total_prm_time += (t_prm_end - t_prm_start)
 
         agg_scores = [
             [aggregate_scores(s, config.agg_strategy) for s in score]
@@ -253,7 +271,7 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
 
         # Get indices for top (config.n / config.beam_width) completions
         top_indices = np.argsort(np.array(agg_scores).flatten())[
-            -(current_beam_width // config.beam_width):
+            -(config.n // config.beam_width):
         ]
 
         for idx, beam in enumerate(active_beams):
@@ -266,32 +284,40 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             completed_beams,
             key=lambda b: aggregate_scores(b.all_scores, config.agg_strategy),
             reverse=True,
-        )[: current_beam_width]
+        )[: config.n]
     else:
-        completed_beams = completed_beams[: current_beam_width]
+        completed_beams = completed_beams[: config.n]
 
-    if len(completed_beams) != current_beam_width:
+    if len(completed_beams) != config.n:
         # If we don't have enough completed_beams, duplicate until we reach config.n
-        repeats = (current_beam_width // len(completed_beams)) + 1
+        repeats = (config.n // len(completed_beams)) + 1
         logger.debug(
-            f"Extending completed_beams with {repeats} repetitions to reach size {current_beam_width}"
+            f"Extending completed_beams with {repeats} repetitions to reach size {config.n}"
         )
         extended_completed_beams = [
-            copy.deepcopy(b) for b in (completed_beams * repeats)[: current_beam_width]
+            copy.deepcopy(b) for b in (completed_beams * repeats)[: config.n]
         ]
         completed_beams = extended_completed_beams
 
-    # 返回完成的beams和所有beams（用于统计pruned信息）
-    return completed_beams, beams
+    # 返回完成的beams、所有beams和计时信息
+    timing_info = {
+        'llm_time': total_llm_time,
+        'prm_time': total_prm_time
+    }
+    return completed_beams, beams, timing_info
 
 
 def beam_search_dynamic(examples, config: Config, llm: LLM, prm: PRM):
     problems = examples["problem"]
 
     start_time = time.perf_counter()
-    beam_results, all_beams = _beam_search_dynamic(problems, config, llm, prm)
+    beam_results, all_beams, timing_info = _beam_search_dynamic(problems, config, llm, prm)
     end_time = time.perf_counter()
     total_time = end_time - start_time
+    
+    # 提取计时信息
+    llm_gen_time = timing_info['llm_time']
+    prm_score_time = timing_info['prm_time']
     
     # Group together alike beams and store in the dataset
     grouped_results = defaultdict(list)
@@ -339,12 +365,20 @@ def beam_search_dynamic(examples, config: Config, llm: LLM, prm: PRM):
     examples["total_active_beam_tokens"] = [total_active_beam_tokens] * num_problems
     examples["total_pruned_tokens"] = [total_pruned_tokens] * num_problems
     
+    # 计时信息（每个问题的平均时间）
+    examples["llm_gen_time"] = [llm_gen_time / num_problems] * num_problems
+    examples["prm_score_time"] = [prm_score_time / num_problems] * num_problems
+    
     # 打印统计信息
-    logger.info(f"\n=== Token Statistics ===")
+    logger.info(f"\n=== Statistics ===")
     logger.info(f"总生成token数: {total_tokens_all_beams}")
     logger.info(f"最终activate beam总token数: {total_active_beam_tokens}")
     logger.info(f"被prune的beam总token数: {total_pruned_tokens}")
     logger.info(f"平均每个问题的token数: {total_tokens_all_beams / num_problems:.2f}")
-    logger.info(f"======================\n")
+    logger.info(f"总LLM生成时间: {llm_gen_time:.2f}s")
+    logger.info(f"总PRM评分时间: {prm_score_time:.2f}s")
+    logger.info(f"平均每个问题LLM时间: {llm_gen_time / num_problems:.2f}s")
+    logger.info(f"平均每个问题PRM时间: {prm_score_time / num_problems:.2f}s")
+    logger.info(f"==================\n")
 
     return examples

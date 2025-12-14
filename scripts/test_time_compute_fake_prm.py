@@ -27,6 +27,7 @@ from sal.config import Config
 from sal.models.reward_models import load_prm
 from sal.search import dvts, best_of_n, beam_search
 from sal.search.beam_search_dynamic import beam_search_dynamic
+from sal.search.beam_search_dynamic_official import beam_search_dynamic_official
 from sal.search.best_of_n_speculative import best_of_n_speculative
 from sal.search.best_of_n_transformers import best_of_n_transformers
 from sal.search.beam_search_adaptive import adaptive_beam_search
@@ -78,8 +79,9 @@ APPROACHES = {
     "best_of_n_speculative": best_of_n_speculative,
     "best_of_n_transformers": best_of_n_transformers,
     "best_of_n_transformers_layerskip": best_of_n_transformers_layerskip,
-    "best_of_n_transformers_layerskip_hard": best_of_n_transformers_layerskip_hard  # [新增]
-    ,"beam_search_dynamic": beam_search_dynamic,
+    "best_of_n_transformers_layerskip_hard": best_of_n_transformers_layerskip_hard,
+    "beam_search_dynamic": beam_search_dynamic,
+    "beam_search_dynamic_official": beam_search_dynamic_official,
     "beam_search_dynamic_cosine": beam_search_dynamic_cosine    
 }
 
@@ -205,6 +207,8 @@ def main():
             approach_fn = best_of_n
         elif config.approach == "beam_search_dynamic":
             approach_fn = beam_search_dynamic
+        elif config.approach == "beam_search_dynamic_official":
+            approach_fn = beam_search_dynamic_official
         elif config.approach == "beam_search_dynamic_cosine":
             approach_fn = beam_search_dynamic_cosine
         else:
