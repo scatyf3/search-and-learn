@@ -189,7 +189,9 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             beam.completion_tokens += gen_result.completion_tokens
             beam.current_text += beam.next_texts[0]
             beam.history.append(beam.next_texts[0])
-
+            tokens_per_prompt[beam.prompt] += gen_result.completion_tokens
+            beam_number_per_prompt[beam.prompt] += 1
+            
             if (
                 beam.stop_reasons[0] == "EOS"
                 or beam.stop_reasons[0] == "length"
@@ -318,6 +320,8 @@ def beam_search_dynamic_official(examples, config: Config, llm: LLM, prm: PRM):
         pred.append(pred_i)
         # 最终activate beam各自的token数
         completion_tokens.append([b.completion_tokens for b in beams])
+        logger.info(f"Total tokens for problem is {tokens_per_prompt[p]}")
+        logger.info(f"Number of beams for problem is {beam_number_per_prompt[p]}")
 
     # 修改 examples 字典
     examples["completions"] = completions
@@ -344,5 +348,10 @@ def beam_search_dynamic_official(examples, config: Config, llm: LLM, prm: PRM):
     logger.info(f"平均每个问题LLM时间: {llm_gen_time / num_problems:.2f}s")
     logger.info(f"平均每个问题PRM时间: {prm_score_time / num_problems:.2f}s")
     logger.info(f"=============================================\n")
+
+    logger.info(f"=================以下是新添加的方法=================\n")
+
+    logger.info(f"Total tokens for batch: {sum(results['completion_tokens'])}")
+    logger.info(f"Total beams for batch: {sum(results['beam_counts_total'])}")
 
     return examples
