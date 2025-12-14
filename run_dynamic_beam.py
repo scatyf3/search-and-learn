@@ -16,9 +16,10 @@ SCRIPT_PATH = "scripts/test_time_compute_fake_prm.py"
 SWEEP_CONFIG_DIR = "recipes/sweeps"
 
 
-STRATEGY_VALUES = ["exp", "cosine"]
-N_VALUES = [4, 16]
-TEMP_VALUES = [0.5, 0.8, 1.0, 2.0]
+STRATEGY_VALUES = ["exp"]
+N_VALUES = [16]
+TEMP_VALUES = [0.5,0.8,1.0, 2.0]
+# 之前弄一半被kill了，重新跑下
 
 # 5. Debug模式 (如果为True，只采样1个问题)
 DEBUG_MODE = False  # 设为 False 关闭调试

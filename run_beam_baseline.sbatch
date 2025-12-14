@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Slurm 资源配置 ---
-#SBATCH --job-name=test_dynamic_beam       # 任务名称
+#SBATCH --job-name=beam_baseline       # 任务名称
 #SBATCH --nodes=1                     # 申请1个节点
 #SBATCH --ntasks-per-node=1           # 每个节点运行1个任务
 #SBATCH --cpus-per-task=4             # 为该任务申请4个CPU核心
@@ -46,7 +46,7 @@ echo "Using Python at: $(which python)"
 # 排查有无问题
 # python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n4_debug.yaml
 
-python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n4.yaml
+#python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n4.yaml
 python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_n16.yaml
 # 7. 任务结束
 echo "Job finished."

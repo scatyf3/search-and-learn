@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=1           # 每个节点运行1个任务
 #SBATCH --cpus-per-task=4             # 为该任务申请4个CPU核心
 #SBATCH --mem=32G                     # 申请32GB内存
-#SBATCH --time=24:00:00               # 任务最长运行时间 (1小时)
+#SBATCH --time=36:00:00               # 任务最长运行时间 (1小时)
 #SBATCH --account=pr_289_general      # (!!!) 你的账户 (来自 sshare)
 #SBATCH --partition=a100_1            # (!!!) 申请A100分区 (来自 sinfo)
 #SBATCH --gres=gpu:a100:1             # (!!!) 明确申请1块A100 GPU
@@ -42,8 +42,10 @@ export PYTHONNOUSERSITE=True           # 4. 隔离环境
 echo "Using Python at: $(which python)"
 
 # 6. 运行你的 Python 脚本
-
-python run_dynamic_beam.py
+# debug
+python scripts/test_time_compute_fake_prm.py recipes/Llama-3.2-1B-Instruct/beam_search_dynamic_debug.yaml
+# true full run
+# python run_dynamic_beam.py
 
 # 7. 任务结束
 echo "Job finished."
