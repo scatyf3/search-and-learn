@@ -134,8 +134,12 @@ def _beam_search_dynamic(batch_of_prompts, config: Config, llm: LLM, prm: PRM) -
             current_n = cosine_decay_beam_width(i, config, min_n)
         else:
             current_n = exp_decay_beam_width(i, config, min_n)
-        # 确保current_n至少为1
-        current_n = max(1, current_n)
+
+        
+        if i == config.num_iterations - 1:
+            current_n = config.n # 最后一次迭代使用固定的n
+        else:
+            current_n = max(1, current_n) # 确保current_n至少为1
         
         logger.info(f"Iteration {i}: Beam width fixed at {current_beam_width}, dynamic n={current_n}")
         # Duplicate active beams to ensure that we have config.n beams per iteration
