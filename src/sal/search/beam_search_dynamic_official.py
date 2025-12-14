@@ -320,8 +320,8 @@ def beam_search_dynamic_official(examples, config: Config, llm: LLM, prm: PRM):
         pred.append(pred_i)
         # 最终activate beam各自的token数
         completion_tokens.append([b.completion_tokens for b in beams])
-        logger.info(f"Total tokens for problem is {tokens_per_prompt[p]}")
-        logger.info(f"Number of beams for problem is {beam_number_per_prompt[p]}")
+        logger.info(f"此问题的总token数 {tokens_per_prompt[p]}")
+        logger.info(f"此问题的beam数 {beam_number_per_prompt[p]}")
 
     # 修改 examples 字典
     examples["completions"] = completions
@@ -351,7 +351,14 @@ def beam_search_dynamic_official(examples, config: Config, llm: LLM, prm: PRM):
 
     logger.info(f"=================以下是新添加的方法=================\n")
 
-    logger.info(f"Total tokens for batch: {sum(results['completion_tokens'])}")
-    logger.info(f"Total beams for batch: {sum(results['beam_counts_total'])}")
+    total_tokens = sum(tokens_per_prompt[p] for p in problems)
+    total_beams = sum(beam_number_per_prompt[p] for p in problems)
+    avg_tokens = total_tokens / num_problems if num_problems > 0 else 0
+    avg_beams = total_beams / num_problems if num_problems > 0 else 0
+    
+    logger.info(f"总生成token数: {total_tokens}")
+    logger.info(f"平均每个问题的token数: {avg_tokens:.2f}")
+    logger.info(f"总beam数: {total_beams}")
+    logger.info(f"平均每个问题的beam数: {avg_beams:.2f}")
 
     return examples
