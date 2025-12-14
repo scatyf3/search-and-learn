@@ -1,0 +1,14 @@
+# Official Dynamic Beam Search Configuration
+# 只动态调整采样的 n 值，保持 beam width 固定为 config.n
+
+filter_duplicates: true
+approach: beam_search_dynamic_official
+n: 16                        # beam width 固定为 16
+beam_width: 4                # pruning 因子：保留 n/beam_width 个 beams
+search_batch_size: 1         # DO NOT CHANGE!
+seed: 0
+beam_decay_strategy: exp     # 衰减策略：exp 或 cosine
+beam_decay_temperature: 1.0  # 调整衰减曲线（仅用于 exp 策略）
+beam_warmup_steps: 5         # warmup 步数
+num_samples: 10
+num_iterations: 40           # beam search 迭代次数
