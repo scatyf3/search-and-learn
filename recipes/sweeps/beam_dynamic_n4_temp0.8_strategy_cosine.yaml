@@ -1,0 +1,8 @@
+filter_duplicates: true
+approach: beam_search_dynamic
+n: 4
+search_batch_size: 1
+seed: 0
+beam_decay_temperature: 0.8
+beam_warmup_steps: 5
+beam_decay_strategy: cosine

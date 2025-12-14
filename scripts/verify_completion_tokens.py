@@ -14,6 +14,12 @@ from pathlib import Path
 from transformers import AutoTokenizer
 from collections import defaultdict
 
+'''
+data/meta-llama/Llama-3.2-1B-Instruct/beam_search_n4_temp1.0_exp_20251210_141452_completions.jsonl
+data/meta-llama/Llama-3.2-1B-Instruct/beam_search_n4_temp1.0_exp_20251210_143633_completions.jsonl
+
+'''
+
 def verify_tokens(jsonl_path: str, model_path: str = "meta-llama/Llama-3.2-1B-Instruct"):
     """验证 JSONL 文件中的 completion_tokens 是否准确"""
     
@@ -136,3 +142,26 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+'''
+(base) [yf3005@ga007 search-and-learn]$ python scripts/calculate_tokens_per_second.py data/meta-llama/Llama-3.2-1B-Instruct/beam_search_n4_temp1.0_exp_20251210_143633_completions.jsonl
+Line 1: LLM Gen - 167.22 tokens/s
+Line 1: PRM Score - 437.62 tokens/s
+Line 2: LLM Gen - 56.49 tokens/s
+Line 2: PRM Score - 76.03 tokens/s
+Line 3: LLM Gen - 199.34 tokens/s
+Line 3: PRM Score - 280.00 tokens/s
+Line 4: LLM Gen - 172.63 tokens/s
+Line 4: PRM Score - 509.62 tokens/s
+
+
+(base) [yf3005@ga007 search-and-learn]$ python scripts/calculate_tokens_per_second.py data/meta-llama/Llama-3.2-1B-Instruct/beam_search_n4_temp1.0_exp_20251210_141452_completions.jsonl
+Line 1: LLM Gen - 167.22 tokens/s
+Line 1: PRM Score - 437.62 tokens/s
+Line 2: LLM Gen - 56.49 tokens/s
+Line 2: PRM Score - 76.03 tokens/s
+Line 3: LLM Gen - 199.34 tokens/s
+Line 3: PRM Score - 280.00 tokens/s
+Line 4: LLM Gen - 172.63 tokens/s
+Line 4: PRM Score - 509.62 tokens/s
+'''

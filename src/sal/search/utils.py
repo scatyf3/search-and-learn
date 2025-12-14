@@ -65,6 +65,7 @@ class Beam:
     history: list[str]
     completed: bool = False
     completion_tokens: int = 0
+    pruned_score: float | None = None  # score when pruned
 
 
 @dataclass
@@ -75,7 +76,8 @@ class GenResult:
     first_step_stop_reason: str
     lookahead_text: str
     stop_reason: str | None
-    completion_tokens: int = 0
+    completion_tokens: int = 0  # 包含lookahead的总token数
+    first_step_tokens: int = 0  # 只包含第一步的token数（不含lookahead）
 
 
 def generate_k_steps(
@@ -96,6 +98,7 @@ def generate_k_steps(
                 stop_reason=None,
                 first_step_stop_reason=None,
                 completion_tokens=0,
+                first_step_tokens=0,
             )
             gen_results.append(gen_result)
 
@@ -117,10 +120,13 @@ def generate_k_steps(
         llm_outputs = llm.generate(gen_prompts, gen_sampling_params, use_tqdm=False)
         for gen_result, output in zip(current_gen, llm_outputs):
             gen_text = output.outputs[0].text
-            # 累计生成的token数
-            gen_result.completion_tokens += len(output.outputs[0].token_ids)
+            num_tokens = len(output.outputs[0].token_ids)
+            # 累计生成的token数（包括lookahead）
+            gen_result.completion_tokens += num_tokens
             
             if i == 0:
+                # 只在第一步记录token数
+                gen_result.first_step_tokens = num_tokens
                 gen_result.first_step_text = gen_text
                 gen_result.first_step_stop_reason = output.outputs[0].stop_reason
                 if gen_result.first_step_stop_reason is None:
@@ -138,13 +144,13 @@ def generate_k_steps(
         next_texts = []
         stop_reasons = []
         lookahead_texts = []
-        completion_tokens_sum = 0
+        first_step_tokens_sum = 0  # 只统计第一步的tokens
         for j in range(beam_width):
             gen_result = gen_results[counter]
             next_texts.append(gen_result.first_step_text)
             lookahead_texts.append(gen_result.lookahead_text)
             stop_reasons.append(gen_result.first_step_stop_reason)
-            completion_tokens_sum += gen_result.completion_tokens
+            first_step_tokens_sum += gen_result.first_step_tokens  # 使用first_step_tokens而不是completion_tokens
             counter += 1
 
         beam_result = Beam(
@@ -159,7 +165,7 @@ def generate_k_steps(
             previous_text=None,
             pruned=False,
             history=[],
-            completion_tokens=completion_tokens_sum,
+            completion_tokens=first_step_tokens_sum,  # 使用first_step_tokens_sum
         )
         outputs.append(beam_result)
 

@@ -440,7 +440,8 @@ def main():
         with open(OUTPUT_TSV, 'w', newline='') as f:
             fieldnames = ['filename', 'approach', 'n', 'temperature', 'strategy', 'timestamp', 'accuracy', 
                          'avg_llm_time', 'avg_prm_time', 'avg_total_time', 
-                         'total_llm_time', 'total_prm_time', 'total_time', 'num_samples']
+                         'total_llm_time', 'total_prm_time', 'total_time', 'num_samples','avg_tokens_per_sample', 'total_tokens_estimated', 
+                         'total_completions', 'avg_tokens_per_completion']
             writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter='\t')
             writer.writeheader()
             for result in results:

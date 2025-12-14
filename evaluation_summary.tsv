@@ -1,17 +1,20 @@
-filename	approach	n	temperature	strategy	timestamp	accuracy	avg_llm_time	avg_prm_time	avg_total_time	total_llm_time	total_prm_time	total_time	num_samples
-beam_search_dynamic_n16_temp0.5_cosine_20251207_172314_completions.jsonl	beam_search_dynamic	16	0.5	cosine	20251207_172314	43.0	11.5	12.47	24.0	1149.65	1247.35	2399.68	100
-beam_search_dynamic_n16_temp0.5_exp_20251207_164224_completions.jsonl	beam_search_dynamic	16	0.5	exp	20251207_164224	45.5	11.55	14.24	25.82	4621.58	5694.42	10326.58	400
-beam_search_dynamic_n16_temp0.8_cosine_20251207_203100_completions.jsonl	beam_search_dynamic	16	0.8	cosine	20251207_203100	43.0	11.48	12.46	23.97	1147.7	1246.47	2396.83	100
-beam_search_dynamic_n16_temp0.8_exp_20251207_195008_completions.jsonl	beam_search_dynamic	16	0.8	exp	20251207_195008	44.2	10.23	11.62	21.87	4093.07	4647.13	8749.88	400
-beam_search_dynamic_n16_temp1.0_cosine_20251207_233056_completions.jsonl	beam_search_dynamic	16	1.0	cosine	20251207_233056	43.0	11.47	12.47	23.97	1147.38	1246.56	2396.67	100
-beam_search_dynamic_n16_temp1.0_exp_20251207_225010_completions.jsonl	beam_search_dynamic	16	1.0	exp	20251207_225010	45.5	10.05	10.66	20.73	4018.44	4265.91	8293.75	400
-beam_search_dynamic_n16_temp2.0_cosine_20251208_021153_completions.jsonl	beam_search_dynamic	16	2.0	cosine	20251208_021153	49.0	10.86	11.58	22.46	1085.67	1157.89	2246.03	100
-beam_search_dynamic_n16_temp2.0_exp_20251208_013341_completions.jsonl	beam_search_dynamic	16	2.0	exp	20251208_013341	50.2	9.47	8.8	18.28	3786.04	3518.02	7312.34	400
-beam_search_dynamic_n4_temp0.5_cosine_20251207_091222_completions.jsonl	beam_search_dynamic	4	0.5	cosine	20251207_091222	41.0	7.03	4.03	11.06	702.74	402.67	1106.31	100
-beam_search_dynamic_n4_temp0.5_exp_20251207_085312_completions.jsonl	beam_search_dynamic	4	0.5	exp	20251207_085312	41.0	7.37	4.52	11.9	2948.39	1809.98	4761.91	400
-beam_search_dynamic_n4_temp0.8_cosine_20251207_104617_completions.jsonl	beam_search_dynamic	4	0.8	cosine	20251207_104617	41.0	7.04	4.02	11.07	704.06	402.49	1107.47	100
-beam_search_dynamic_n4_temp0.8_exp_20251207_102700_completions.jsonl	beam_search_dynamic	4	0.8	exp	20251207_102700	39.5	6.93	4.13	11.08	2772.81	1653.47	4430.06	400
-beam_search_dynamic_n4_temp1.0_cosine_20251207_122220_completions.jsonl	beam_search_dynamic	4	1.0	cosine	20251207_122220	41.0	7.06	4.03	11.1	705.93	403.25	1110.34	100
-beam_search_dynamic_n4_temp1.0_exp_20251207_120306_completions.jsonl	beam_search_dynamic	4	1.0	exp	20251207_120306	34.5	7.19	4.22	11.42	2875.76	1687.74	4567.34	400
-beam_search_dynamic_n4_temp2.0_cosine_20251207_134924_completions.jsonl	beam_search_dynamic	4	2.0	cosine	20251207_134924	41.0	7.07	4.04	11.12	706.82	403.93	1111.91	100
-beam_search_dynamic_n4_temp2.0_exp_20251207_133002_completions.jsonl	beam_search_dynamic	4	2.0	exp	20251207_133002	40.0	6.47	3.56	10.04	2586.3	1425.62	4016.41	400
+filename	approach	n	temperature	strategy	timestamp	accuracy	avg_llm_time	avg_prm_time	avg_total_time	total_llm_time	total_prm_time	total_time	num_samples	avg_tokens_per_sample	total_tokens_estimated	total_completions	avg_tokens_per_completion
+beam_search_dynamic_n16_temp0.5_cosine_20251211_091823_completions.jsonl	beam_search_dynamic	16	0.5	cosine	20251211_091823	47.8	9.72	10.56	20.3	4858.55	5281.13	10149.34	500	4290.4	2145219	5909	363.0
+beam_search_dynamic_n16_temp0.5_exp_20251211_062813_completions.jsonl	beam_search_dynamic	16	0.5	exp	20251211_062813	50.6	10.47	12.72	23.21	5234.42	6357.92	11603.18	500	4642.9	2321433	6074	382.2
+beam_search_dynamic_n16_temp0.8_cosine_20251211_151112_completions.jsonl	beam_search_dynamic	16	0.8	cosine	20251211_151112	47.8	9.76	10.57	20.34	4877.7	5283.2	10170.86	500	4290.4	2145219	5909	363.0
+beam_search_dynamic_n16_temp0.8_exp_20251211_122044_completions.jsonl	beam_search_dynamic	16	0.8	exp	20251211_122044	47.8	10.15	11.6	21.77	5074.79	5797.77	10882.71	500	4426.0	2213011	5830	379.6
+beam_search_dynamic_n16_temp1.0_cosine_20251212_110242_completions.jsonl	beam_search_dynamic	16	1.0	cosine	20251212_110242	49.6	9.83	11.02	20.93	4913.64	5509.47	10463.37	500	4239.4	2119710	5770	367.4
+beam_search_dynamic_n16_temp1.0_exp_20251212_080606_completions.jsonl	beam_search_dynamic	16	1.0	exp	20251212_080606	48.2	9.56	10.31	19.89	4778.7	5153.01	9943.04	500	4233.2	2116599	5756	367.7
+beam_search_dynamic_n16_temp2.0_cosine_20251212_163148_completions.jsonl	beam_search_dynamic	16	2.0	cosine	20251212_163148	49.6	9.98	11.02	21.03	4990.94	5512.12	10513.91	500	4239.4	2119710	5770	367.4
+beam_search_dynamic_n16_temp2.0_exp_20251212_133523_completions.jsonl	beam_search_dynamic	16	2.0	exp	20251212_133523	49.4	9.79	8.26	18.08	4897.07	4132.24	9040.1	500	3496.4	1748207	4894	357.2
+beam_search_dynamic_n4_temp0.5_cosine_20251210_185029_completions.jsonl	beam_search_dynamic	4	0.5	cosine	20251210_185029	42.2	6.33	3.64	9.98	3166.47	1820.19	4990.73	500	1433.7	716865	1551	462.2
+beam_search_dynamic_n4_temp0.5_exp_20251210_172628_completions.jsonl	beam_search_dynamic	4	0.5	exp	20251210_172628	42.2	7.04	4.27	11.32	3521.22	2133.54	5659.07	500	1474.9	737444	1552	475.2
+beam_search_dynamic_n4_temp0.8_cosine_20251210_214427_completions.jsonl	beam_search_dynamic	4	0.8	cosine	20251210_214427	42.2	6.32	3.64	9.96	3158.63	1819.27	4982.01	500	1433.7	716865	1551	462.2
+beam_search_dynamic_n4_temp0.8_exp_20251210_202035_completions.jsonl	beam_search_dynamic	4	0.8	exp	20251210_202035	41.2	6.73	3.98	10.72	3364.22	1989.88	5358.25	500	1386.4	693182	1557	445.2
+beam_search_dynamic_n4_temp1.0_cosine_20251211_003422_completions.jsonl	beam_search_dynamic	4	1.0	cosine	20251211_003422	42.2	6.5	3.73	10.24	3252.36	1863.08	5119.55	500	1415.5	707754	1553	455.7
+beam_search_dynamic_n4_temp1.0_exp_20251210_230819_completions.jsonl	beam_search_dynamic	4	1.0	exp	20251210_230819	42.2	6.32	3.64	9.97	3161.37	1819.69	4985.08	500	1433.7	716865	1551	462.2
+beam_search_dynamic_n4_temp2.0_cosine_20251211_031355_completions.jsonl	beam_search_dynamic	4	2.0	cosine	20251211_031355	42.0	6.27	3.63	9.91	3136.98	1815.63	4956.65	500	1354.8	677422	1555	435.6
+beam_search_dynamic_n4_temp2.0_exp_20251211_015031_completions.jsonl	beam_search_dynamic	4	2.0	exp	20251211_015031	39.8	5.9	3.14	9.05	2951.96	1569.42	4525.15	500	1427.2	713587	1520	469.5
+beam_search_n16_temp1.0_exp_20251210_080955_completions.jsonl	beam_search	16	1.0	exp	20251210_080955	49.6	13.45	20.4	33.85	6725.21	10199.17	16924.38	500	8964.3	4482172	8000	560.3
+beam_search_n16_temp1.0_exp_20251212_084748_completions.jsonl	beam_search	16	1.0	exp	20251212_084748	49.4	13.1	20.84	33.94	6550.3	10421.29	16971.59	500	8969.9	4484937	8000	560.6
+beam_search_n4_temp1.0_exp_20251210_163620_completions.jsonl	beam_search	4	1.0	exp	20251210_163620	45.0	5.17	3.66	8.83	2587.0	1828.57	4415.57	500	2646.0	1323022	2000	661.5

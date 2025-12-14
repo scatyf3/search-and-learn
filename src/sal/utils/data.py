@@ -37,14 +37,6 @@ def get_dataset(config: Config) -> Dataset:
         dataset = dataset.select(range(config.dataset_start, config.dataset_end))
     if config.num_samples is not None:
         dataset = dataset.select(range(min(len(dataset), config.num_samples)))
-
-    # 断点续传：检查已存在的输出文件
-    processed_indices = get_processed_indices(config)
-    if processed_indices:
-        original_size = len(dataset)
-        # 过滤掉已处理的样本
-        dataset = dataset.filter(lambda example, idx: idx not in processed_indices, with_indices=True)
-        logger.info(f"📌 断点续传: 跳过 {len(processed_indices)} 个已处理样本 (剩余 {len(dataset)}/{original_size})")
     
     return dataset
 
@@ -57,9 +49,18 @@ def get_processed_indices(config: Config) -> set:
     if not os.path.exists(config.output_dir):
         return set()
     
-    # 构建文件名模式
+    # 构建文件名模式，与 save_dataset 保持一致
     n_str = f"_n{config.n}" if hasattr(config, "n") and config.n is not None else ""
-    pattern = f"{config.output_dir}/{config.approach}{n_str}_*_completions.jsonl"
+    
+    # 添加 temperature 和 strategy 参数（与 save_dataset 逻辑一致）
+    temp_str = ""
+    strategy_str = ""
+    if hasattr(config, "beam_decay_temperature") and config.beam_decay_temperature is not None:
+        temp_str = f"_temp{config.beam_decay_temperature}"
+    if hasattr(config, "beam_decay_strategy") and config.beam_decay_strategy is not None:
+        strategy_str = f"_{config.beam_decay_strategy}"
+    
+    pattern = f"{config.output_dir}/{config.approach}{n_str}{temp_str}{strategy_str}_*_completions.jsonl"
     
     existing_files = glob.glob(pattern)
     if not existing_files:
@@ -139,29 +140,20 @@ def save_dataset(dataset, config):
             strategy_str = f"_{config.beam_decay_strategy}"
         
         params_str = f"{n_str}{temp_str}{strategy_str}"
-        pattern = f"{config.output_dir}/{config.approach}{params_str}_*_completions.jsonl"
-        existing_files = glob.glob(pattern)
         
-        # 断点续传：如果文件已存在，追加模式
-        if existing_files:
-            out_path = max(existing_files, key=os.path.getmtime)
-            logger.info(f"📝 追加到已存在文件: {out_path}")
-            mode = 'a'
-        else:
-            # 新文件：生成时间戳
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out_path = f"{config.output_dir}/{config.approach}{params_str}_{timestamp}_completions.jsonl"
-            
-            # 保存配置头
-            config_dict = config.__dict__.copy()
-            config_dict["timestamp"] = timestamp
-            
-            with open(out_path, 'w') as f:
-                f.write(f"# CONFIG: {json.dumps(config_dict, ensure_ascii=False)}\n")
-            
-            logger.info(f"✨ 创建新文件: {out_path}")
-            mode = 'a'
+        # 总是生成新文件：生成时间戳
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = f"{config.output_dir}/{config.approach}{params_str}_{timestamp}_completions.jsonl"
+        
+        # 保存配置头
+        config_dict = config.__dict__.copy()
+        config_dict["timestamp"] = timestamp
+        
+        with open(out_path, 'w') as f:
+            f.write(f"# CONFIG: {json.dumps(config_dict, ensure_ascii=False)}\n")
+        
+        logger.info(f"✨ 创建新文件: {out_path}")
 
-        # 保存数据集内容
-        dataset.to_json(out_path, lines=True, mode=mode)
-        logger.info(f"💾 已保存 {len(dataset)} 条新记录到 {out_path}")
+        # 保存数据集内容（追加模式）
+        dataset.to_json(out_path, lines=True, mode='a')
+        logger.info(f"💾 已保存 {len(dataset)} 条记录到 {out_path}")

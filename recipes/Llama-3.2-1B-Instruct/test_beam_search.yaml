@@ -1,0 +1,10 @@
+# Quick test config for beam_search
+
+filter_duplicates: true
+approach: beam_search
+n: 4
+num_samples: 1  # Only test with 1 sample
+search_batch_size: 1
+seed: 0
+gpu_memory_utilization: 0.3
+num_iterations: 2  # Reduce iterations for faster testing
